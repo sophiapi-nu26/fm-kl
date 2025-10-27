@@ -43,6 +43,12 @@ def parse_args():
                         help='Number of samples per time point')
     parser.add_argument('--num_times', type=int, default=101,
                         help='Number of time points in grid')
+    parser.add_argument('--rtol', type=float, default=1e-6,
+                        help='Relative tolerance for ODE solver')
+    parser.add_argument('--atol', type=float, default=1e-8,
+                        help='Absolute tolerance for ODE solver')
+    parser.add_argument('--num_seeds', type=int, default=1,
+                        help='Number of random seeds to average over (for variance reduction)')
     
     # Training parameters
     parser.add_argument('--epochs', type=int, default=300,
@@ -146,24 +152,47 @@ def main():
     # Time grid
     t_grid = np.linspace(0, 1, args.num_times)
     
-    # Storage for results
-    kl_curve = np.zeros(args.num_times)
-    rhs_integrand = np.zeros(args.num_times)
+    # Storage for results (accumulate over seeds)
+    kl_curve_all = []
+    rhs_integrand_all = []
     
-    # Evaluate at each time point
-    for k in tqdm(range(args.num_times), desc="Evaluating"):
-        t_k = t_grid[k]
+    # Run multiple seeds for variance reduction
+    for seed_idx in range(args.num_seeds):
+        if args.num_seeds > 1:
+            print(f"\nSeed {seed_idx + 1}/{args.num_seeds}")
+            # Use different seed for each run
+            set_seed(args.seed + seed_idx)
         
-        # Sample from p_t_k
-        x_batch = sample_p_t(t_k, args.num_samples, schedule_enum, device=device)
+        # Storage for results
+        kl_curve = np.zeros(args.num_times)
+        rhs_integrand = np.zeros(args.num_times)
         
-        # LHS: KL(p_t|q_t)
-        kl_k = compute_kl_lhs(x_batch, t_k, schedule_enum, model)
-        kl_curve[k] = kl_k
+        # Evaluate at each time point
+        for k in tqdm(range(args.num_times), desc=f"Evaluating (seed {seed_idx + 1})"):
+            t_k = t_grid[k]
+            
+            # Sample from p_t_k
+            x_batch = sample_p_t(t_k, args.num_samples, schedule_enum, device=device)
+            
+            # LHS: KL(p_t|q_t)
+            kl_k = compute_kl_lhs(x_batch, t_k, schedule_enum, model, rtol=args.rtol, atol=args.atol)
+            kl_curve[k] = kl_k
+            
+            # RHS: integrand ĝ(t_k)
+            g_k = compute_rhs_integrand(x_batch, t_k, schedule_enum, model, rtol=args.rtol, atol=args.atol)
+            rhs_integrand[k] = g_k
         
-        # RHS: integrand ĝ(t_k)
-        g_k = compute_rhs_integrand(x_batch, t_k, schedule_enum, model)
-        rhs_integrand[k] = g_k
+        kl_curve_all.append(kl_curve)
+        rhs_integrand_all.append(rhs_integrand)
+    
+    # Average over seeds
+    if args.num_seeds > 1:
+        kl_curve = np.mean(kl_curve_all, axis=0)
+        rhs_integrand = np.mean(rhs_integrand_all, axis=0)
+        print(f"\nAveraged over {args.num_seeds} seeds")
+    else:
+        kl_curve = kl_curve_all[0]
+        rhs_integrand = rhs_integrand_all[0]
     
     # Integrate RHS over time (trapezoidal rule)
     rhs_cumulative = integrate_rhs(rhs_integrand, t_grid)
@@ -190,8 +219,9 @@ def main():
         'seed': args.seed,
         'num_samples': args.num_samples,
         'num_times': args.num_times,
-        'rtol': 1e-6,
-        'atol': 1e-8,
+        'num_seeds': args.num_seeds,
+        'rtol': args.rtol,
+        'atol': args.atol,
         'median_rel_error': error_stats['median'],
         'max_rel_error': error_stats['max'],
         'mean_rel_error': error_stats['mean'],

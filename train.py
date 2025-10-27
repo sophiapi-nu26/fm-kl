@@ -134,6 +134,9 @@ def train_velocity_model(
     # Plot training and validation curves
     plot_training_curves(training_history, schedule)
     
+    # Plot velocity comparison
+    plot_velocity_comparison(model, schedule, num_samples=10, device=device, dtype=dtype)
+    
     return best_val_mse, training_history
 
 
@@ -174,6 +177,74 @@ def plot_training_curves(history, schedule):
     plot_path = Path('data/plots') / f'training_curves_{schedule.value}.png'
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     print(f"\nSaved training curves to {plot_path}")
+    plt.close()
+
+
+def plot_velocity_comparison(model, schedule, num_samples=10, device='cpu', dtype=torch.float64):
+    """
+    Plot comparison of true vs learned velocity field at multiple time points.
+    
+    Creates 5 subplots (one per time point) showing sampled points with both
+    true velocity (blue) and learned velocity (red) vectors.
+    """
+    from true_path import sample_p_t, velocity_u
+    
+    model.eval()
+    time_points = [0.0, 0.25, 0.5, 0.75, 1.0]
+    
+    fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+    
+    for idx, t in enumerate(time_points):
+        ax = axes[idx]
+        
+        # Sample positions
+        x_samples = sample_p_t(t, num_samples, schedule, device=device, dtype=dtype)
+        x_np = x_samples.cpu().numpy()
+        
+        # Get velocities
+        t_tensor = torch.tensor(t, dtype=dtype, device=device)
+        with torch.no_grad():
+            true_vel = velocity_u(x_samples, t_tensor, schedule).cpu().numpy()
+            learned_vel = model(x_samples, t_tensor).cpu().numpy()
+        
+        # Plot points
+        ax.scatter(x_np[:, 0], x_np[:, 1], c='black', s=50, zorder=3, label='Position')
+        
+        # Plot true velocity vectors (blue)
+        ax.quiver(x_np[:, 0], x_np[:, 1], 
+                  true_vel[:, 0], true_vel[:, 1],
+                  angles='xy', scale_units='xy', scale=None,
+                  color='blue', alpha=0.7, width=0.003, label='True velocity',
+                  zorder=1)
+        
+        # Plot learned velocity vectors (red)
+        ax.quiver(x_np[:, 0], x_np[:, 1], 
+                  learned_vel[:, 0], learned_vel[:, 1],
+                  angles='xy', scale_units='xy', scale=None,
+                  color='red', alpha=0.7, width=0.003, label='Learned velocity',
+                  zorder=2)
+        
+        # Set equal aspect and add grid
+        ax.set_aspect('equal')
+        ax.grid(True, alpha=0.3)
+        ax.set_title(f'Time t = {t}', fontsize=12, fontweight='bold')
+        ax.set_xlabel('$x_1$', fontsize=11)
+        if idx == 0:
+            ax.set_ylabel('$x_2$', fontsize=11)
+        
+        # Legend only on first subplot
+        if idx == 0:
+            ax.legend(loc='upper right', fontsize=9)
+    
+    plt.suptitle(f'True vs Learned Velocity Field - Schedule {schedule.value.upper()}', 
+                 fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    
+    # Save plot
+    Path('data/plots').mkdir(parents=True, exist_ok=True)
+    plot_path = Path('data/plots') / f'velocity_comparison_{schedule.value}.png'
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    print(f"Saved velocity comparison to {plot_path}")
     plt.close()
 
 

@@ -65,14 +65,31 @@ def load_checkpoint(model, path, device):
 
 def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
     """Plot LHS (KL) vs RHS (integrated) comparison."""
-    plt.figure(figsize=(10, 6))
-    plt.plot(t_grid, kl_curve, label='LHS: KL(p_t|q_t)', linewidth=2, alpha=0.8)
-    plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=2, alpha=0.8, linestyle='--')
+    plt.figure(figsize=(12, 5))
+    
+    # Left subplot: raw curves
+    plt.subplot(1, 2, 1)
+    plt.plot(t_grid, kl_curve, label='LHS: KL(p_t|q_t)', linewidth=2, alpha=0.8, marker='o', markersize=2)
+    plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=2, alpha=0.8, linestyle='--', marker='s', markersize=2)
     plt.xlabel('Time t', fontsize=12)
     plt.ylabel('KL Divergence', fontsize=12)
-    plt.title(f'KL Identity Verification - Schedule {schedule.upper()}', fontsize=14)
-    plt.legend(fontsize=11)
+    plt.title('Raw Curves', fontsize=13, fontweight='bold')
+    plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
+    
+    # Right subplot: smoothed curves
+    plt.subplot(1, 2, 2)
+    kl_smooth = smooth_curve(kl_curve, window_size=5)
+    rhs_smooth = smooth_curve(rhs_curve, window_size=5)
+    plt.plot(t_grid, kl_smooth, label='LHS (smoothed)', linewidth=2.5, alpha=0.9)
+    plt.plot(t_grid, rhs_smooth, label='RHS (smoothed)', linewidth=2.5, alpha=0.9, linestyle='--')
+    plt.xlabel('Time t', fontsize=12)
+    plt.ylabel('KL Divergence', fontsize=12)
+    plt.title('Smoothed Curves', fontsize=13, fontweight='bold')
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+    
+    plt.suptitle(f'KL Identity Verification - Schedule {schedule.upper()}', fontsize=14, fontweight='bold')
     plt.tight_layout()
     
     if save_path:
@@ -82,6 +99,37 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
     
     plt.show()
     plt.close()
+
+
+def smooth_curve(y, window_size=5):
+    """
+    Apply moving average smoothing to reduce noise in curves.
+    
+    Args:
+        y: Array of values to smooth
+        window_size: Size of the moving average window (must be odd)
+    
+    Returns:
+        Smoothed array
+    """
+    if window_size < 3:
+        return y
+    
+    # Ensure window_size is odd
+    if window_size % 2 == 0:
+        window_size += 1
+    
+    half = window_size // 2
+    smoothed = np.zeros_like(y)
+    
+    # Pad boundaries with edge values
+    y_padded = np.pad(y, (half, half), mode='edge')
+    
+    # Apply moving average
+    for i in range(len(y)):
+        smoothed[i] = np.mean(y_padded[i:i+window_size])
+    
+    return smoothed
 
 
 def compute_relative_error(rhs, kl):

@@ -75,10 +75,17 @@ def backward_ode_and_divergence(v_theta, x, t, rtol=1e-6, atol=1e-8):
             )[0]
             divergence += grad_i[..., i]
         
-        # Backward flow: dx/ds = -v_θ
-        dx_ds = -v
+        # Backward flow: dx/ds = +v_θ
+        # Note: when going backward in time, we need to flip the sign
+        # The forward flow is dx/dt = +v_θ, so backward is dx/ds = -v_θ
+        # But we're integrating from t to 0, so we actually want dx/ds = +v_θ
+        dx_ds = v
         
-        # Divergence accumulation: dℓ/ds = ∇·v_θ
+        # Divergence accumulation: dℓ/ds = +∇·v_θ  
+        # Since odeint integrates from s=t down to s=0, we accumulate:
+        # ℓ(0) = ℓ(t) + ∫_t^0 (+∇·v_θ) ds = ℓ(t) - ∫_0^t ∇·v_θ ds
+        # But we start with ℓ(t)=0, so we get ℓ(0) = -∫_0^t ∇·v_θ ds
+        # We want +∫_0^t ∇·v_θ ds, so we need to negate at the end
         dell_ds = divergence.unsqueeze(-1)
         
         return torch.cat([dx_ds, dell_ds], dim=1)
@@ -90,7 +97,11 @@ def backward_ode_and_divergence(v_theta, x, t, rtol=1e-6, atol=1e-8):
     # Extract solution at s=0
     z_final = z_sol[-1]
     x_0 = z_final[:, :2]
-    ell = z_final[:, 2:3]
+    ell_raw = z_final[:, 2:3]
+    
+    # Negate the divergence since we integrated backward in time
+    # We computed ∫_t^0 (+∇·v_θ) ds = -∫_0^t ∇·v_θ ds, but we want +∫_0^t ∇·v_θ ds
+    ell = -ell_raw
     
     return x_0, ell
 
@@ -118,7 +129,9 @@ def log_q_t(x, t, v_theta, schedule, rtol=1e-6, atol=1e-8):
         else:
             x_flat = x.reshape(-1, 2)
         
-        log_p0 = -np.log(2 * np.pi) - 0.5 * torch.sum(x_flat ** 2, dim=-1)
+        # For d=2: log p_0(x) = -d/2 * log(2π) - |x|²/2 = -log(2π) - |x|²/2
+        d = 2
+        log_p0 = -(d / 2) * np.log(2 * np.pi) - 0.5 * torch.sum(x_flat ** 2, dim=-1)
         return log_p0.view(x.shape[:-1]) if x.dim() > 1 else log_p0
     
     # Reshape to batch
@@ -130,10 +143,12 @@ def log_q_t(x, t, v_theta, schedule, rtol=1e-6, atol=1e-8):
     
     # log p_0(x_0) for d=2
     d = 2
+    # Note: p_0 = N(0, I_2) so log p_0(x) = -d/2 * log(2π) - |x|²/2
     log_p0_x0 = -(d / 2) * np.log(2 * np.pi) - 0.5 * torch.sum(x_0 ** 2, dim=-1)
     
-    # log q_t(x) = log p_0(x_0) + ℓ(t)
-    log_q = log_p0_x0 + ell.squeeze(-1)
+    # log q_t(x) = log p_0(x_0) - ℓ(t)
+    # The divergence term should be subtracted, not added
+    log_q = log_p0_x0 - ell.squeeze(-1)
     
     # Reshape back
     if len(original_shape) > 0:
