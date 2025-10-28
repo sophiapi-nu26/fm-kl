@@ -12,7 +12,9 @@ Based on nolearning_test.md.
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 from pathlib import Path
+from true_path import Schedule, get_schedule_functions, schedule_to_enum
 
 
 def a_u(t):
@@ -125,15 +127,40 @@ def plot_comparison(t_grid, kl_values, rhs_values, save_path=None):
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"Saved plot to {save_path}")
     
-    plt.show()
+    # plt.show()  # Commented out for automated runs
     plt.close()
 
 
-def test_nolearning():
-    """Run the no-learning test."""
+def test_nolearning(schedule_p='a1', schedule_q='a2'):
+    """
+    Run the no-learning test.
+    
+    Args:
+        schedule_p: Schedule for distribution p_t (options: 'a1', 'a2', 'a3')
+        schedule_q: Schedule for distribution q_t (options: 'a1', 'a2', 'a3')
+    """
+    # Convert string to enum and get schedule functions
+    schedule_p_enum = schedule_to_enum(schedule_p)
+    schedule_q_enum = schedule_to_enum(schedule_q)
+    a_p_func, A_p_func = get_schedule_functions(schedule_p_enum)
+    a_q_func, A_q_func = get_schedule_functions(schedule_q_enum)
+    
     print("=" * 60)
     print("NO-LEARNING TEST: Closed-Form KL Identity Verification")
+    print(f"Schedule p (p_t): {schedule_p}")
+    print(f"Schedule q (q_t): {schedule_q}")
     print("=" * 60)
+    
+    # Helper functions using the schedules
+    def sigma_p_sq_dyn(t):
+        if not isinstance(t, torch.Tensor):
+            t = torch.tensor(t, dtype=torch.float64)
+        return torch.exp(2 * A_p_func(t))
+    
+    def sigma_q_sq_dyn(t):
+        if not isinstance(t, torch.Tensor):
+            t = torch.tensor(t, dtype=torch.float64)
+        return torch.exp(2 * A_q_func(t))
     
     # Time grid
     t_grid = np.linspace(0, 1, 201)
@@ -142,14 +169,22 @@ def test_nolearning():
     print("\n1. Computing LHS (KL divergence) analytically...")
     kl_values = []
     for t_val in t_grid:
-        kl = kl_lhs_analytic(t_val).item()
+        # Compute r(t) = σ_p²/σ_q²
+        r_val = (sigma_p_sq_dyn(t_val) / sigma_q_sq_dyn(t_val)).item()
+        kl = r_val - 1 - np.log(r_val)
         kl_values.append(kl)
     
     # Compute RHS integrand g(t) analytically
     print("2. Computing RHS integrand g(t) analytically...")
     g_values = []
     for t_val in t_grid:
-        g = g_rhs_analytic(t_val).item()
+        # Get velocity values
+        a_p_val = a_p_func(t_val).item()
+        a_q_val = a_q_func(t_val).item()
+        r_val = (sigma_p_sq_dyn(t_val) / sigma_q_sq_dyn(t_val)).item()
+        
+        # g(t) = 2(a_p - a_q)(r - 1)
+        g = 2 * (a_p_val - a_q_val) * (r_val - 1)
         g_values.append(g)
     
     # Integrate RHS over time
@@ -204,7 +239,8 @@ def test_nolearning():
     print(f"{'='*60}\n")
     
     # Plot comparison
-    plot_comparison(t_grid, kl_values, rhs_integrated, save_path='data/plots/nolearning_test.png')
+    plot_filename = f'data/plots/nolearning_test_{schedule_p}_{schedule_q}.png'
+    plot_comparison(t_grid, kl_values, rhs_integrated, save_path=plot_filename)
     
     return {
         'max_error': max_error,
@@ -346,14 +382,27 @@ def test_ode_pipeline():
 
 
 if __name__ == '__main__':
-    # Run main test
-    results = test_nolearning()
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='No-learning KL identity test')
+    parser.add_argument('--schedule_p', type=str, default='a1', choices=['a1', 'a2', 'a3'],
+                        help='Schedule for distribution p_t (default: a1)')
+    parser.add_argument('--schedule_q', type=str, default='a2', choices=['a1', 'a2', 'a3'],
+                        help='Schedule for distribution q_t (default: a2)')
+    parser.add_argument('--skip_ode', action='store_true',
+                        help='Skip ODE pipeline test (faster)')
+    args = parser.parse_args()
+    
+    # Run main test with specified schedules
+    results = test_nolearning(schedule_p=args.schedule_p, schedule_q=args.schedule_q)
     
     # Run derivative check
     derivative_passed = test_derivative_check()
     
-    # Run ODE pipeline test
-    ode_passed = test_ode_pipeline()
+    # Run ODE pipeline test (optional)
+    if not args.skip_ode:
+        ode_passed = test_ode_pipeline()
+    else:
+        ode_passed = None
     
     # Summary
     print("\n" + "=" * 60)
@@ -361,6 +410,9 @@ if __name__ == '__main__':
     print("=" * 60)
     print(f"KL identity test: {'PASS' if results['accepted'] else 'FAIL'}")
     print(f"Derivative check: {'PASS' if derivative_passed else 'FAIL'}")
-    print(f"ODE pipeline: {'PASS' if ode_passed else 'FAIL'}")
+    if ode_passed is not None:
+        print(f"ODE pipeline: {'PASS' if ode_passed else 'FAIL'}")
+    else:
+        print("ODE pipeline: SKIPPED")
     print("=" * 60)
 

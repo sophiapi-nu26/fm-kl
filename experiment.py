@@ -11,6 +11,7 @@ import argparse
 import numpy as np
 import torch
 from tqdm import tqdm
+from datetime import datetime
 
 from utils import (
     set_seed, get_device, ensure_dirs, save_checkpoint, 
@@ -113,7 +114,13 @@ def main():
     print(f"\nModel created: {sum(p.numel() for p in model.parameters())} parameters")
     
     # Training or loading
-    model_path = f"data/models/vtheta_schedule_{args.schedule}.pth"
+    # Generate model path with timestamp and target_mse
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if args.target_mse is not None:
+        mse_str = str(args.target_mse).replace('.', '-')
+        model_path = f"data/models/vtheta_schedule_{args.schedule}_mse_{mse_str}_{timestamp}.pth"
+    else:
+        model_path = f"data/models/vtheta_schedule_{args.schedule}_{timestamp}.pth"
     
     if args.load_model is not None:
         print(f"\nLoading model from {args.load_model}")

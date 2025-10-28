@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 # Configuration
-schedules = ['a1', 'a2', 'a3']
+schedules = ['a1', 'a2', 'a3'] 
 target_mses = [0.01, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8]
 
 # Common parameters
