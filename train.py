@@ -156,22 +156,22 @@ def plot_training_curves(history, schedule):
     
     # Plot MSE
     plt.subplot(1, 2, 1)
-    plt.plot(epochs, history['train_mse'], label='Training MSE', marker='o', linewidth=2)
-    plt.plot(epochs, history['val_mse'], label='Validation MSE', marker='s', linewidth=2)
-    plt.xlabel('Epoch', fontsize=12)
-    plt.ylabel('MSE', fontsize=12)
-    plt.title(f'Training Curves - Schedule {schedule.value.upper()}', fontsize=14)
-    plt.legend(fontsize=11)
+    plt.plot(epochs, history['train_mse'], label='Training MSE', marker='o', linewidth=3)
+    plt.plot(epochs, history['val_mse'], label='Validation MSE', marker='s', linewidth=3)
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('MSE', fontsize=18)
+    plt.title(f'Training Curves - Schedule {schedule.value.upper()}', fontsize=21)
+    plt.legend(fontsize=17)
     plt.grid(True, alpha=0.3)
     plt.yscale('log')
     
     # Plot NMSE
     plt.subplot(1, 2, 2)
-    plt.plot(epochs, history['val_nmse'], label='Validation NMSE', marker='s', color='orange', linewidth=2)
-    plt.xlabel('Epoch', fontsize=12)
-    plt.ylabel('NMSE', fontsize=12)
-    plt.title(f'Normalized MSE - Schedule {schedule.value.upper()}', fontsize=14)
-    plt.legend(fontsize=11)
+    plt.plot(epochs, history['val_nmse'], label='Validation NMSE', marker='s', color='orange', linewidth=3)
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('NMSE', fontsize=18)
+    plt.title(f'Normalized MSE - Schedule {schedule.value.upper()}', fontsize=21)
+    plt.legend(fontsize=17)
     plt.grid(True, alpha=0.3)
     plt.yscale('log')
     
@@ -180,7 +180,7 @@ def plot_training_curves(history, schedule):
     # Save plot
     Path('data/plots').mkdir(parents=True, exist_ok=True)
     plot_path = Path('data/plots') / f'training_curves_{schedule.value}.png'
-    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.savefig(plot_path, dpi=225, bbox_inches='tight')
     print(f"\nSaved training curves to {plot_path}")
     plt.close()
 
@@ -213,42 +213,42 @@ def plot_velocity_comparison(model, schedule, num_samples=10, device='cpu', dtyp
             learned_vel = model(x_samples, t_tensor).cpu().numpy()
         
         # Plot points
-        ax.scatter(x_np[:, 0], x_np[:, 1], c='black', s=50, zorder=3, label='Position')
+        ax.scatter(x_np[:, 0], x_np[:, 1], c='black', s=113, zorder=3, label='Position')
         
         # Plot true velocity vectors (blue)
         ax.quiver(x_np[:, 0], x_np[:, 1], 
                   true_vel[:, 0], true_vel[:, 1],
                   angles='xy', scale_units='xy', scale=None,
-                  color='blue', alpha=0.7, width=0.003, label='True velocity',
+                  color='blue', alpha=0.7, width=0.005, label='True velocity',
                   zorder=1)
         
         # Plot learned velocity vectors (red)
         ax.quiver(x_np[:, 0], x_np[:, 1], 
                   learned_vel[:, 0], learned_vel[:, 1],
                   angles='xy', scale_units='xy', scale=None,
-                  color='red', alpha=0.7, width=0.003, label='Learned velocity',
+                  color='red', alpha=0.7, width=0.005, label='Learned velocity',
                   zorder=2)
         
         # Set equal aspect and add grid
         ax.set_aspect('equal')
         ax.grid(True, alpha=0.3)
-        ax.set_title(f'Time t = {t}', fontsize=12, fontweight='bold')
-        ax.set_xlabel('$x_1$', fontsize=11)
+        ax.set_title(f'Time t = {t}', fontsize=18, fontweight='bold')
+        ax.set_xlabel('$x_1$', fontsize=17)
         if idx == 0:
-            ax.set_ylabel('$x_2$', fontsize=11)
+            ax.set_ylabel('$x_2$', fontsize=17)
         
         # Legend only on first subplot
         if idx == 0:
-            ax.legend(loc='upper right', fontsize=9)
+            ax.legend(loc='upper right', fontsize=14)
     
     plt.suptitle(f'True vs Learned Velocity Field - Schedule {schedule.value.upper()}', 
-                 fontsize=14, fontweight='bold')
+                 fontsize=21, fontweight='bold')
     plt.tight_layout()
     
     # Save plot
     Path('data/plots').mkdir(parents=True, exist_ok=True)
     plot_path = Path('data/plots') / f'velocity_comparison_{schedule.value}.png'
-    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.savefig(plot_path, dpi=225, bbox_inches='tight')
     print(f"Saved velocity comparison to {plot_path}")
     plt.close()
 

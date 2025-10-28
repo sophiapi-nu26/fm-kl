@@ -113,18 +113,18 @@ def integrate_trapezoidal(g_values, t_grid):
 def plot_comparison(t_grid, kl_values, rhs_values, save_path=None):
     """Plot LHS vs RHS comparison."""
     plt.figure(figsize=(10, 6))
-    plt.plot(t_grid, kl_values, label='LHS: KL(p_t|q_t)', linewidth=7, marker='o', markersize=5)
-    plt.plot(t_grid, rhs_values, label='RHS: ∫₀ᵗ g(s) ds', linewidth=2, linestyle='--', marker='s', markersize=3)
-    plt.xlabel('Time t', fontsize=12)
-    plt.ylabel('KL Divergence', fontsize=12)
-    plt.title('KL Identity Verification (Closed-Form)', fontsize=14, fontweight='bold')
-    plt.legend(fontsize=11)
+    plt.plot(t_grid, kl_values, label='LHS: KL(p_t|q_t)', linewidth=11, marker='o', markersize=8)
+    plt.plot(t_grid, rhs_values, label='RHS: ∫₀ᵗ g(s) ds', linewidth=3, linestyle='--', marker='s', markersize=5)
+    plt.xlabel('Time t', fontsize=18)
+    plt.ylabel('KL Divergence', fontsize=18)
+    plt.title('KL Identity Verification (Closed-Form)', fontsize=21, fontweight='bold')
+    plt.legend(fontsize=17)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     
     if save_path:
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=225, bbox_inches='tight')
         print(f"Saved plot to {save_path}")
     
     # plt.show()  # Commented out for automated runs
