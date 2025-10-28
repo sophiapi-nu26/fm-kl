@@ -75,6 +75,11 @@ def parse_args():
     parser.add_argument('--val_samples_per_time', type=int, default=2048,
                         help='Samples per time point for validation')
     
+    parser.add_argument('--target_mse', type=float, default=None,
+                        help='Target validation MSE (training stops when reached)')
+    parser.add_argument('--target_nmse', type=float, default=1e-2,
+                        help='Target normalized MSE (training stops when reached)')
+    
     return parser.parse_args()
 
 
@@ -128,6 +133,8 @@ def main():
             num_batches_per_epoch=args.num_batches_per_epoch,
             val_times=args.val_times,
             val_samples_per_time=args.val_samples_per_time,
+            target_mse=args.target_mse,
+            target_nmse=args.target_nmse,
             device=device
         )
         
@@ -230,7 +237,7 @@ def main():
     
     save_results(
         t_grid, kl_curve, rhs_integrand, rhs_cumulative,
-        args.schedule, metadata
+        args.schedule, metadata, target_mse=args.target_mse
     )
     
     print(f"\n{'='*60}")

@@ -1,0 +1,13 @@
+{
+  "schedule": "a1",
+  "seed": 42,
+  "num_samples": 2000,
+  "num_times": 101,
+  "num_seeds": 3,
+  "rtol": 1e-06,
+  "atol": 1e-08,
+  "median_rel_error": 6.203944661523749,
+  "max_rel_error": 14463.788226346736,
+  "mean_rel_error": 166.0875357152037,
+  "accepted": false
+}

@@ -8,6 +8,7 @@ import random
 import os
 import json
 from pathlib import Path
+from datetime import datetime
 import matplotlib.pyplot as plt
 
 
@@ -39,7 +40,7 @@ def get_device(device_str='cpu'):
 
 def ensure_dirs():
     """Create necessary directories if they don't exist."""
-    dirs = ['data', 'data/models', 'data/results', 'data/plots']
+    dirs = ['data', 'data/models', 'data/results', 'data/plots', 'data/plot-data']
     for d in dirs:
         Path(d).mkdir(parents=True, exist_ok=True)
 
@@ -97,7 +98,7 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"Saved plot to {save_path}")
     
-    plt.show()
+    # plt.show()  # Commented out for automated runs
     plt.close()
 
 
@@ -148,27 +149,51 @@ def compute_relative_error(rhs, kl):
     }
 
 
-def save_results(t_grid, kl_curve, rhs_integrand, rhs_cumulative, schedule, metadata):
+def save_results(t_grid, kl_curve, rhs_integrand, rhs_cumulative, schedule, metadata, target_mse=None):
     """Save experimental results to files."""
     ensure_dirs()
     
+    # Generate timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Create filename suffix with target_mse if provided
+    if target_mse is not None:
+        mse_str = str(target_mse).replace('.', '-')
+        suffix = f"_mse_{mse_str}_{timestamp}"
+    else:
+        suffix = f"_{timestamp}"
+    
     # Save numpy arrays
     results_dir = Path('data/results')
-    np.save(results_dir / f't_grid_{schedule}.npy', t_grid)
-    np.save(results_dir / f'kl_curve_{schedule}.npy', kl_curve)
-    np.save(results_dir / f'rhs_integrand_{schedule}.npy', rhs_integrand)
-    np.save(results_dir / f'rhs_cumulative_{schedule}.npy', rhs_cumulative)
+    np.save(results_dir / f't_grid_{schedule}{suffix}.npy', t_grid)
+    np.save(results_dir / f'kl_curve_{schedule}{suffix}.npy', kl_curve)
+    np.save(results_dir / f'rhs_integrand_{schedule}{suffix}.npy', rhs_integrand)
+    np.save(results_dir / f'rhs_cumulative_{schedule}{suffix}.npy', rhs_cumulative)
     
     # Save metadata
-    metadata_path = results_dir / f'metadata_{schedule}.json'
+    metadata_path = results_dir / f'metadata_{schedule}{suffix}.json'
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=2)
     
     print(f"Saved results to {results_dir}")
     
     # Plot comparison
-    plot_path = Path('data/plots') / f'kl_comparison_{schedule}.png'
+    plot_path = Path('data/plots') / f'kl_comparison_{schedule}{suffix}.png'
     plot_comparison(t_grid, kl_curve, rhs_cumulative, schedule, plot_path)
+    
+    # Save plot data (for regeneration)
+    plot_data_dir = Path('data/plot-data')
+    plot_data = {
+        't_grid': t_grid.tolist(),
+        'kl_curve': kl_curve.tolist(),
+        'rhs_cumulative': rhs_cumulative.tolist(),
+        'schedule': schedule,
+        'metadata': metadata
+    }
+    plot_data_path = plot_data_dir / f'kl_comparison_{schedule}{suffix}.json'
+    with open(plot_data_path, 'w') as f:
+        json.dump(plot_data, f, indent=2)
+    print(f"Saved plot data to {plot_data_path}")
 
 
 if __name__ == '__main__':

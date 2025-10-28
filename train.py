@@ -25,6 +25,7 @@ def train_velocity_model(
     val_samples_per_time=2048,
     early_stop_patience=20,
     target_nmse=1e-2,
+    target_mse=None,
     device='cpu',
     dtype=torch.float64
 ):
@@ -120,7 +121,11 @@ def train_velocity_model(
                 patience_counter += 1
             
             # Early stopping
-            if val_nmse <= target_nmse:
+            # Check if target_mse is specified, otherwise use target_nmse
+            if target_mse is not None and val_mse <= target_mse:
+                print(f"\nReached target MSE {val_mse:.4e} at epoch {epoch}")
+                break
+            elif val_nmse <= target_nmse:
                 print(f"\nReached target NMSE {val_nmse:.4e} at epoch {epoch}")
                 break
             elif patience_counter >= early_stop_patience:
