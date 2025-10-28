@@ -161,6 +161,7 @@ def plot_training_curves(history, schedule):
     plt.xlabel('Epoch', fontsize=18)
     plt.ylabel('MSE', fontsize=18)
     plt.title(f'Training Curves - Schedule {schedule.value.upper()}', fontsize=21)
+    plt.tick_params(axis='both', which='major', labelsize=20)
     plt.legend(fontsize=17)
     plt.grid(True, alpha=0.3)
     plt.yscale('log')
@@ -171,6 +172,7 @@ def plot_training_curves(history, schedule):
     plt.xlabel('Epoch', fontsize=18)
     plt.ylabel('NMSE', fontsize=18)
     plt.title(f'Normalized MSE - Schedule {schedule.value.upper()}', fontsize=21)
+    plt.tick_params(axis='both', which='major', labelsize=20)
     plt.legend(fontsize=17)
     plt.grid(True, alpha=0.3)
     plt.yscale('log')
@@ -234,6 +236,7 @@ def plot_velocity_comparison(model, schedule, num_samples=10, device='cpu', dtyp
         ax.grid(True, alpha=0.3)
         ax.set_title(f'Time t = {t}', fontsize=18, fontweight='bold')
         ax.set_xlabel('$x_1$', fontsize=17)
+        ax.tick_params(axis='both', which='major', labelsize=20)
         if idx == 0:
             ax.set_ylabel('$x_2$', fontsize=17)
         
