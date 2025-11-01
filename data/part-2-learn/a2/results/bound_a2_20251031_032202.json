@@ -1,0 +1,580 @@
+{
+  "args": {
+    "schedule": "a2",
+    "epochs": 400,
+    "lr": 0.001,
+    "batch_size": 4,
+    "batches_per_epoch": 2,
+    "val_times": 64,
+    "val_samples_per_time": 2048,
+    "save_epochs": [
+      10,
+      20,
+      40,
+      80,
+      160,
+      320
+    ],
+    "eval_checkpoints": "all",
+    "eval_val_times": 101,
+    "eval_val_samples_per_time": 1024,
+    "eval_K_S": 101,
+    "eval_N_S": 512,
+    "eval_N_kl": 5000,
+    "eval_rtol": 1e-06,
+    "eval_atol": 1e-08,
+    "eval_chunk_size": 1024,
+    "tight_eval": false,
+    "seed": 42,
+    "eval_seed": 12345,
+    "device": "cpu",
+    "outdir": "data/part-2-learn",
+    "eval_only": false
+  },
+  "results": [
+    {
+      "epoch": 339,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\best.pt",
+      "val_mse_train": 0.02908478405926009,
+      "eps_eval": 0.20104170981086106,
+      "S_eval": 0.016878217051073223,
+      "KL_eval": 0.0021814590334782763,
+      "kl_hat": 0.0021814590334782763,
+      "rhs": 0.026118573454812086,
+      "RHS": 0.026118573454812086,
+      "ratio": 0.08352136985017321,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 399,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\final.pt",
+      "val_mse_train": 0.03586433595082462,
+      "eps_eval": 0.1990390721253246,
+      "S_eval": 0.020481443484658877,
+      "KL_eval": 0.0036081364863794767,
+      "kl_hat": 0.0036081364863794767,
+      "rhs": 0.02848515711045304,
+      "RHS": 0.02848515711045304,
+      "ratio": 0.12666724892506978,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 0,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=0__valmse=1-07e-1__2025-10-31T03-16-54.pt",
+      "val_mse_train": 0.10658353971767495,
+      "eps_eval": 0.3100601143772441,
+      "S_eval": 0.178283624094682,
+      "KL_eval": 0.08444932510581275,
+      "kl_hat": 0.08444932510581275,
+      "rhs": 0.13091868359165235,
+      "RHS": 0.13091868359165235,
+      "ratio": 0.645051743486958,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 4,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=4__valmse=6-58e-2__2025-10-31T03-16-54.pt",
+      "val_mse_train": 0.06579540355187016,
+      "eps_eval": 0.27623252526612013,
+      "S_eval": 0.10537205661767915,
+      "KL_eval": 0.039859700242456,
+      "kl_hat": 0.039859700242456,
+      "rhs": 0.08966801214214738,
+      "RHS": 0.08966801214214738,
+      "ratio": 0.44452530272744184,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 9,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=9__valmse=6-37e-2__2025-10-31T03-16-55.pt",
+      "val_mse_train": 0.06367287418016057,
+      "eps_eval": 0.25244329743891786,
+      "S_eval": 0.04388537894490137,
+      "KL_eval": 0.007937272975263317,
+      "kl_hat": 0.007937272975263317,
+      "rhs": 0.05288393597018153,
+      "RHS": 0.05288393597018153,
+      "ratio": 0.15008854446345912,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 149,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=149__valmse=4-68e-2__2025-10-31T03-16-59.pt",
+      "val_mse_train": 0.046845734614400864,
+      "eps_eval": 0.22401870558133877,
+      "S_eval": 0.019967714121261842,
+      "KL_eval": 0.00217076415861641,
+      "kl_hat": 0.00217076415861641,
+      "rhs": 0.031655447590975584,
+      "RHS": 0.031655447590975584,
+      "ratio": 0.0685747422265246,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 249,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=249__valmse=3-78e-2__2025-10-31T03-17-02.pt",
+      "val_mse_train": 0.03776150462530752,
+      "eps_eval": 0.21080469989053788,
+      "S_eval": 0.026874826164511926,
+      "KL_eval": 0.005302804679147255,
+      "kl_hat": 0.005302804679147255,
+      "rhs": 0.034558359736739874,
+      "RHS": 0.034558359736739874,
+      "ratio": 0.15344491809053393,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 34,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=34__valmse=5-02e-2__2025-10-31T03-16-55.pt",
+      "val_mse_train": 0.050208995413222615,
+      "eps_eval": 0.24979920373345793,
+      "S_eval": 0.03428512445094521,
+      "KL_eval": 0.006273837940851875,
+      "kl_hat": 0.006273837940851875,
+      "rhs": 0.046253426878848564,
+      "RHS": 0.046253426878848564,
+      "ratio": 0.13564049983334026,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 89,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=89__valmse=4-86e-2__2025-10-31T03-16-57.pt",
+      "val_mse_train": 0.04856440671946115,
+      "eps_eval": 0.23919727762985368,
+      "S_eval": 0.014880983940656069,
+      "KL_eval": 0.001602689805669009,
+      "kl_hat": 0.001602689805669009,
+      "rhs": 0.029179111027664566,
+      "RHS": 0.029179111027664566,
+      "ratio": 0.054925929859532284,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 149,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=149__valmse=4-68e-2__2025-10-31T03-16-59.pt",
+      "val_mse_train": 0.046845734614400864,
+      "eps_eval": 0.22401870558133877,
+      "S_eval": 0.019967714121261842,
+      "KL_eval": 0.00217076415861641,
+      "kl_hat": 0.00217076415861641,
+      "rhs": 0.031655447590975584,
+      "RHS": 0.031655447590975584,
+      "ratio": 0.0685747422265246,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 164,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=164__valmse=3-98e-2__2025-10-31T03-16-59.pt",
+      "val_mse_train": 0.03978339629238649,
+      "eps_eval": 0.22151999681228146,
+      "S_eval": 0.02318750018869815,
+      "KL_eval": 0.0027379393843949807,
+      "kl_hat": 0.0027379393843949807,
+      "rhs": 0.03373182990755508,
+      "RHS": 0.03373182990755508,
+      "ratio": 0.08116782848421014,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 249,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=249__valmse=3-78e-2__2025-10-31T03-17-02.pt",
+      "val_mse_train": 0.03776150462530752,
+      "eps_eval": 0.21080469989053788,
+      "S_eval": 0.026874826164511926,
+      "KL_eval": 0.005302804679147255,
+      "kl_hat": 0.005302804679147255,
+      "rhs": 0.034558359736739874,
+      "RHS": 0.034558359736739874,
+      "ratio": 0.15344491809053393,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 309,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=309__valmse=3-74e-2__2025-10-31T03-17-04.pt",
+      "val_mse_train": 0.03741038085339708,
+      "eps_eval": 0.203969858689928,
+      "S_eval": 0.020981309075136616,
+      "KL_eval": 0.0034779357782405347,
+      "kl_hat": 0.0034779357782405347,
+      "rhs": 0.02954488376423597,
+      "RHS": 0.02954488376423597,
+      "ratio": 0.1177170235629957,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 334,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=334__valmse=3-20e-2__2025-10-31T03-17-04.pt",
+      "val_mse_train": 0.03197182682003954,
+      "eps_eval": 0.20125824619155896,
+      "S_eval": 0.01600831126772852,
+      "KL_eval": 0.001957961970872045,
+      "kl_hat": 0.001957961970872045,
+      "rhs": 0.02546398934726104,
+      "RHS": 0.02546398934726104,
+      "ratio": 0.07689140708357418,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 339,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=339__valmse=2-91e-2__2025-10-31T03-17-04.pt",
+      "val_mse_train": 0.02908478405926009,
+      "eps_eval": 0.20104170981086106,
+      "S_eval": 0.016878217051073223,
+      "KL_eval": 0.0021814590334782763,
+      "kl_hat": 0.0021814590334782763,
+      "rhs": 0.026118573454812086,
+      "RHS": 0.026118573454812086,
+      "ratio": 0.08352136985017321,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    },
+    {
+      "epoch": 399,
+      "ckpt_path": "data\\part-2-learn\\a2\\checkpoints\\ckpt__sched=a2__epoch=399__valmse=3-59e-2__2025-10-31T03-17-06.pt",
+      "val_mse_train": 0.03586433595082462,
+      "eps_eval": 0.1990390721253246,
+      "S_eval": 0.020481443484658877,
+      "KL_eval": 0.0036081364863794767,
+      "kl_hat": 0.0036081364863794767,
+      "rhs": 0.02848515711045304,
+      "RHS": 0.02848515711045304,
+      "ratio": 0.12666724892506978,
+      "bound_satisfied": true,
+      "eval_params": {
+        "eval_val_times": 101,
+        "eval_val_samples_per_time": 1024,
+        "eval_K_S": 101,
+        "eval_N_S": 512,
+        "eval_N_kl": 5000,
+        "eval_rtol": 1e-06,
+        "eval_atol": 1e-08,
+        "eval_chunk_size": 1024
+      },
+      "train_params": {
+        "lr": 0.001,
+        "wd": 1e-06,
+        "epochs": 400,
+        "batch_size": 4,
+        "num_batches_per_epoch": 2
+      },
+      "seeds": {
+        "training": 42,
+        "eval": 12345
+      }
+    }
+  ]
+}

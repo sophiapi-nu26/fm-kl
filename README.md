@@ -34,6 +34,21 @@ fm-kl-2/
 │   ├── run_all_nolearning.sh   # Run all schedule permutations
 │   └── run_all_nolearning.ps1  # PowerShell version
 │
+├── Part 2: Synthetic Bound Verification
+│   ├── synthetic_velocity.py        # Synthetic velocity fields v(x,t)
+│   ├── eval_pt2.py                  # Part 2 evaluation functions
+│   ├── experiment_pt2.py            # Part 2 orchestrator
+│   ├── test_pt2.py                  # Part 2 unit tests
+│   ├── run_all_pt2_experiments.py   # Automated Part 2 experiments
+│   └── run_all_pt2_experiments.ps1  # PowerShell wrapper
+│
+├── Part 2 (Learning): Learned Bound Verification
+│   ├── model_learn_pt2.py          # Velocity MLP (copy)
+│   ├── train_learn_pt2.py          # Training with checkpointing
+│   ├── eval_learn_pt2.py           # Learned evaluation functions
+│   ├── experiment_learn_pt2.py     # Part 2 Learning orchestrator
+│   └── test_learn_pt2.py           # Part 2 Learning unit tests
+│
 ├── Automated Experiments
 │   ├── run_all_experiments.py  # Train and evaluate all schedules
 │   ├── run_all_experiments.ps1 # PowerShell wrapper
@@ -47,7 +62,16 @@ fm-kl-2/
     ├── models/                  # Saved trained models (.pth)
     ├── results/                 # Raw results (.npy, .json)
     ├── plots/                   # Generated plots (.png)
-    └── plot-data/              # Plot data for regeneration (.json)
+    ├── plot-data/              # Plot data for regeneration (.json)
+    ├── part-2/                 # Part 2 (Synthetic) results
+    │   ├── results/            # Part 2 results
+    │   └── plots/              # Part 2 plots
+    └── part-2-learn/           # Part 2 (Learning) results
+        └── {schedule}/         # Per-schedule outputs
+            ├── checkpoints/    # Model checkpoints
+            ├── results/        # Evaluation results
+            ├── plots/          # Bound verification plots
+            └── logs/           # Training logs
 ```
 
 ## Installation
@@ -101,6 +125,38 @@ This will:
 ```bash
 python experiment.py --schedule a1 --load_model data/models/vtheta_schedule_a1_mse_0-05_TIMESTAMP.pth
 ```
+
+### 4. Part 2: Synthetic Bound Verification
+
+Validate the bound `KL(p₁|q₁) ≤ ε√S` using synthetic velocity fields:
+
+```bash
+python experiment_pt2.py --schedule a1 --delta_type constant --delta_beta 0.0 0.05 0.1 0.2
+```
+
+For oscillatory perturbations:
+```bash
+python experiment_pt2.py --schedule a1 --delta_type sine --delta_beta 0.025 0.05 0.075 0.1
+```
+
+Run all Part 2 experiments:
+```bash
+python run_all_pt2_experiments.py
+```
+
+### 5. Part 2 (Learning): Learned Bound Verification
+
+Train a velocity MLP and verify the bound across training checkpoints:
+
+```bash
+python experiment_learn_pt2.py --schedule a1 --epochs 400 --eval_checkpoints "all"
+```
+
+This will:
+- Train a neural network for up to 400 epochs
+- Save multiple checkpoints (best, final, and on improvement)
+- Evaluate the bound for all saved checkpoints
+- Generate scatter plots showing bound tightening with training
 
 ## Core Concepts
 
@@ -185,6 +241,69 @@ python nolearning_test.py --schedule_p {a1,a2,a3} --schedule_q {a1,a2,a3} [--ski
 - `--schedule_q`: Schedule for distribution `q_t` (default: a2)
 - `--skip_ode`: Skip ODE pipeline test for faster runs
 
+### `experiment_pt2.py` - Part 2 Synthetic Bound Verification
+
+**Usage:**
+```bash
+python experiment_pt2.py --schedule {a1,a2,a3} --delta_type {constant,sine} --delta_beta 0.0 0.05 0.1 [OPTIONS]
+```
+
+**Key arguments:**
+- `--schedule`: Velocity schedule (required)
+- `--delta_type`: Perturbation type: `constant` (δ(t)=β) or `sine` (δ(t)=β sin(2πt))
+- `--delta_beta`: List of β values for perturbations (repeatable)
+- `--K_eps`: Time points for ε computation (default: 101)
+- `--N_eps`: Samples per time for ε (default: 4096)
+- `--K_S`: Time points for S computation (default: 101)
+- `--N_S`: Samples per time for S (default: 2048)
+- `--N_kl`: Samples for KL at t=1 (default: 20000)
+- `--rtol`, `--atol`: ODE tolerances (default: 1e-6, 1e-8)
+
+**Examples:**
+```bash
+# Constant perturbations on a1
+python experiment_pt2.py --schedule a1 --delta_type constant --delta_beta 0.0 0.05 0.1 0.2
+
+# Sine perturbations on a2
+python experiment_pt2.py --schedule a2 --delta_type sine --delta_beta 0.025 0.05 0.075 0.1
+```
+
+### `experiment_learn_pt2.py` - Part 2 Learned Bound Verification
+
+**Usage:**
+```bash
+python experiment_learn_pt2.py --schedule {a1,a2,a3} [OPTIONS]
+```
+
+**Training arguments:**
+- `--epochs`: Max training epochs (default: 400)
+- `--lr`: Learning rate (default: 1e-3)
+- `--batch_size`: Training batch size (default: 4)
+- `--batches_per_epoch`: Batches per epoch (default: 2)
+- `--val_times`: Validation time points (default: 64)
+- `--val_samples_per_time`: Validation samples (default: 2048)
+
+**Evaluation arguments:**
+- `--eval_checkpoints`: Checkpoints to evaluate: `"final,best"` or `"all"` (default: final,best)
+- `--eval_val_times`: Eval time points for ε_θ (default: 101)
+- `--eval_val_samples_per_time`: Eval samples for ε_θ (default: 1024)
+- `--eval_K_S`: Time points for S_θ (default: 101)
+- `--eval_N_S`: Samples per time for S_θ (default: 512)
+- `--eval_N_kl`: Samples for KL (default: 5000)
+- `--eval_rtol`, `--eval_atol`: Eval ODE tolerances (default: 1e-6, 1e-8)
+- `--eval_chunk_size`: Batch size for evaluation (default: 1024)
+- `--eval_seed`: Random seed for evaluation (default: 12345)
+- `--eval_only`: Skip training, only evaluate existing checkpoints
+
+**Examples:**
+```bash
+# Full training + evaluation
+python experiment_learn_pt2.py --schedule a1 --epochs 400 --eval_checkpoints "all"
+
+# Evaluate existing checkpoints only
+python experiment_learn_pt2.py --schedule a1 --eval_only --eval_checkpoints "all"
+```
+
 ## Testing
 
 ### LHS Pipeline Tests (`test_golden_path.py`)
@@ -227,6 +346,38 @@ Closed-form KL identity verification without learning:
 python nolearning_test.py --schedule_p a1 --schedule_q a2
 ```
 
+### Part 2 Tests (`test_pt2.py`)
+
+Tests for synthetic velocity field validation:
+
+- **Synthetic velocity properties**: Forward and divergence correctness
+- **ODE reversibility**: Backward-forward consistency
+- **Score correctness**: Oracle comparison for linear fields
+- **ε checks**: RMS flow-matching error validation
+- **KL at t=1 checks**: KL divergence computation accuracy
+- **S convergence**: Score-gap integral convergence
+- **Bound verification**: KL ≤ ε√S across perturbation types
+
+```bash
+python test_pt2.py
+```
+
+### Part 2 (Learning) Tests (`test_learn_pt2.py`)
+
+Tests for learned model validation:
+
+- **T0**: Model wiring (forward, divergence)
+- **T1**: Training learns (loss decreases)
+- **T2**: ε_θ consistency (validate_model vs direct MC)
+- **T3**: Score oracle at small times
+- **T4**: Backward-ODE numerics
+- **T5**: Bound holds and tightens
+- **T6**: Reproducibility
+
+```bash
+python test_learn_pt2.py
+```
+
 ## Automated Experiment Scripts
 
 ### Train models for all schedules and target MSEs
@@ -244,6 +395,19 @@ This trains models for schedules a1, a2, a3 with target MSEs: 0.01, 0.05, 0.1, 0
 ```
 
 Evaluates each schedule with models trained on *different* schedules (e.g., a1 vs a2-trained model).
+
+### Part 2 experiments (Synthetic)
+
+Run all synthetic bound verification experiments:
+
+```bash
+python run_all_pt2_experiments.py
+```
+
+This tests all combinations of:
+- Schedules: a1, a2, a3
+- Perturbation types: constant and sine
+- Perturbation strengths: β ∈ [0, 0.2] for constant, β ∈ [0.025, 0.1] for sine
 
 ## Output Files
 
@@ -278,6 +442,22 @@ To regenerate plots with different styling:
 ```bash
 python regenerate_plots.py
 ```
+
+### Part 2 (Synthetic) Outputs
+Saved to `data/part-2/{results,plots}/`:
+- `bound_*.csv` / `bound_*.json`: Bound verification results
+- `bound_scatter_*.png`: LHS vs RHS scatter plot
+- `bound_bars_*.png`: Grouped bar chart comparing LHS and RHS
+- `fhat_curves_*.png`: Score-gap integrand f̂(t) curves (optional)
+
+### Part 2 (Learning) Outputs
+Saved to `data/part-2-learn/{schedule}/`:
+- **Checkpoints**: `checkpoints/ckpt__sched=*__epoch=*__valmse=*_TIMESTAMP.pt`
+- **Results**: `results/bound_*_TIMESTAMP.{csv,json}` (one row per checkpoint)
+- **Plots**: `plots/bound_scatter_*_TIMESTAMP.png`, `plots/fhat_curves_*_TIMESTAMP.png`
+- **Logs**: `logs/training_*.log` (if enabled)
+
+Checkpoint aliases: `best.pt`, `final.pt`, `best.json`, `final.json`
 
 ## Key Implementation Details
 
@@ -346,6 +526,23 @@ KL(p_t|q_t) = ∫₀ᵗ E_{x~p_s}[(u(x,s)-v_θ(x,s))ᵀ(∇log p_s(x)-∇log q_s
 This is useful because:
 - **LHS**: Requires solving ODEs and computing densities
 - **RHS**: Only requires evaluating velocities and scores at sampled points
+
+### Part 2: The Bound
+
+Part 2 validates a related bound on the KL divergence at terminal time t=1:
+```
+KL(p₁|q₁) ≤ ε√S
+```
+
+where:
+- **ε** = √(E_{t~U[0,1], x~p_t} |v(x,t) - u(x,t)|²) is the RMS flow-matching error
+- **S** = ∫₀¹ E_{x~p_t} |∇log p_t(x) - ∇log q_t(x)|² dt is the score-gap integral
+
+This bound provides a certificate of model quality: if ε and S are small, then the KL divergence at t=1 is guaranteed to be small. This is particularly useful because ε can be computed from validation data without solving ODEs.
+
+**Part 2 (Synthetic)**: Uses synthetic velocity fields v(x,t) = (a(t) + δ(t))x with perturbations δ(t) to systematically explore bound behavior across different model quality regimes.
+
+**Part 2 (Learning)**: Trains velocity MLPs and verifies the bound holds (and tightens) as training progresses, demonstrating practical applicability to learned models.
 
 ## Troubleshooting
 

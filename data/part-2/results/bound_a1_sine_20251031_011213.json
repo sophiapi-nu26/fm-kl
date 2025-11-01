@@ -1,0 +1,73 @@
+{
+  "args": {
+    "mode": "synthetic",
+    "schedule": "a1",
+    "delta_type": "sine",
+    "delta_beta": [
+      0.025,
+      0.05,
+      0.075,
+      0.1
+    ],
+    "seed": 42,
+    "device": "cpu",
+    "K_eps": 101,
+    "N_eps": 4096,
+    "N_kl": 20000,
+    "K_S": 101,
+    "N_S": 2048,
+    "rtol": 1e-06,
+    "atol": 1e-08,
+    "outdir": "data/part-2"
+  },
+  "results": [
+    {
+      "schedule": "a1",
+      "delta_type": "sine",
+      "beta": 0.025,
+      "delta_label": "\u03b4(t)=0.025\u00b7sin(2\u03c0t)",
+      "epsilon_hat": 0.036009236089076656,
+      "KL_hat": -7.880376502058529e-08,
+      "S_hat": 0.0001078624099859254,
+      "RHS": 0.0003739805086826291,
+      "ratio": -0.00021071623571553694,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a1",
+      "delta_type": "sine",
+      "beta": 0.05,
+      "delta_label": "\u03b4(t)=0.05\u00b7sin(2\u03c0t)",
+      "epsilon_hat": 0.07177073934692432,
+      "KL_hat": 4.056145218788165e-07,
+      "S_hat": 0.000413136899442924,
+      "RHS": 0.0014587954936447086,
+      "ratio": 0.0002780475561145409,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a1",
+      "delta_type": "sine",
+      "beta": 0.075,
+      "delta_label": "\u03b4(t)=0.075\u00b7sin(2\u03c0t)",
+      "epsilon_hat": 0.1077947466449019,
+      "KL_hat": -4.347581164829473e-07,
+      "S_hat": 0.0009013761629524382,
+      "RHS": 0.0032363138405696406,
+      "ratio": -0.00013433744003221368,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a1",
+      "delta_type": "sine",
+      "beta": 0.1,
+      "delta_label": "\u03b4(t)=0.1\u00b7sin(2\u03c0t)",
+      "epsilon_hat": 0.1435399908719591,
+      "KL_hat": -1.863045151832221e-07,
+      "S_hat": 0.001597091091603198,
+      "RHS": 0.0057363779518962476,
+      "ratio": -3.247772666751086e-05,
+      "bound_satisfied": true
+    }
+  ]
+}

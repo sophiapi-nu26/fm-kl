@@ -1,0 +1,138 @@
+{
+  "args": {
+    "mode": "synthetic",
+    "schedule": "a2",
+    "delta_type": "constant",
+    "delta_beta": [
+      0.0,
+      0.025,
+      0.05,
+      0.075,
+      0.1,
+      0.125,
+      0.15,
+      0.175,
+      0.2
+    ],
+    "seed": 42,
+    "device": "cpu",
+    "K_eps": 101,
+    "N_eps": 4096,
+    "N_kl": 20000,
+    "K_S": 101,
+    "N_S": 2048,
+    "rtol": 1e-06,
+    "atol": 1e-08,
+    "outdir": "data/part-2"
+  },
+  "results": [
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.0,
+      "delta_label": "\u03b4(t)=0.0",
+      "epsilon_hat": 0.0,
+      "KL_hat": 3.0296655029193874e-07,
+      "S_hat": 2.0504287578286693e-09,
+      "RHS": 0.0,
+      "ratio": 0.0,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.025,
+      "delta_label": "\u03b4(t)=0.025",
+      "epsilon_hat": 0.04109222881690899,
+      "KL_hat": 0.0008159421701184168,
+      "S_hat": 0.0011202405064014423,
+      "RHS": 0.0013753566568849226,
+      "ratio": 0.5932586038929446,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.05,
+      "delta_label": "\u03b4(t)=0.05",
+      "epsilon_hat": 0.08227987781357393,
+      "KL_hat": 0.00424345584092545,
+      "S_hat": 0.004243664354486101,
+      "RHS": 0.00535999212338222,
+      "ratio": 0.7916906859646238,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.075,
+      "delta_label": "\u03b4(t)=0.075",
+      "epsilon_hat": 0.12336306138909721,
+      "KL_hat": 0.008286412057140412,
+      "S_hat": 0.009296309512303345,
+      "RHS": 0.011894342109947756,
+      "ratio": 0.6966683806925417,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.1,
+      "delta_label": "\u03b4(t)=0.1",
+      "epsilon_hat": 0.16468879543470996,
+      "KL_hat": 0.020976033610123235,
+      "S_hat": 0.01615460919561995,
+      "RHS": 0.020932074952409303,
+      "ratio": 1.002100062120639,
+      "bound_satisfied": false
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.125,
+      "delta_label": "\u03b4(t)=0.125",
+      "epsilon_hat": 0.2057059150685708,
+      "KL_hat": 0.029655071086854775,
+      "S_hat": 0.02464197356629791,
+      "RHS": 0.03229122521992542,
+      "ratio": 0.9183631430793776,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.15,
+      "delta_label": "\u03b4(t)=0.15",
+      "epsilon_hat": 0.24689136502921089,
+      "KL_hat": 0.04171343521400131,
+      "S_hat": 0.03292109862514494,
+      "RHS": 0.04479639451499938,
+      "ratio": 0.931178405441407,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.175,
+      "delta_label": "\u03b4(t)=0.175",
+      "epsilon_hat": 0.2880295980442599,
+      "KL_hat": 0.05921423569069861,
+      "S_hat": 0.04236315664958926,
+      "RHS": 0.05928315046797683,
+      "ratio": 0.9988375317989309,
+      "bound_satisfied": true
+    },
+    {
+      "schedule": "a2",
+      "delta_type": "constant",
+      "beta": 0.2,
+      "delta_label": "\u03b4(t)=0.2",
+      "epsilon_hat": 0.32903147860579934,
+      "KL_hat": 0.07455216845976545,
+      "S_hat": 0.05320764038901398,
+      "RHS": 0.07589697188826976,
+      "ratio": 0.9822811978522142,
+      "bound_satisfied": true
+    }
+  ]
+}

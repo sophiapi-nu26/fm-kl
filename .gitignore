@@ -1,6 +1,7 @@
 # Custom folders
 instructions/
 old-junk/
+descriptions/
 
 # Python
 __pycache__/

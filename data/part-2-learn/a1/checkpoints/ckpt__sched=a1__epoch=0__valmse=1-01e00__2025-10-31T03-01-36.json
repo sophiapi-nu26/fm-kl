@@ -1,0 +1,16 @@
+{
+  "epoch": 0,
+  "val_mse": 1.0143663091600477,
+  "nmse": 0.9455382146351825,
+  "schedule": "a1",
+  "seed": 42,
+  "train_params": {
+    "lr": 0.001,
+    "wd": 1e-06,
+    "epochs": 400,
+    "batch_size": 4,
+    "num_batches_per_epoch": 2
+  },
+  "timestamp": "2025-10-31T03-01-36",
+  "git_sha": "724cdd5"
+}
