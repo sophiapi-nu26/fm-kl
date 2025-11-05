@@ -26,6 +26,7 @@ from eval_learn_pt2 import (
     compute_epsilon_learn, compute_score_gap_integral_learn, 
     compute_kl_at_t1_learn
 )
+from plot_eps_curves import plot_lhs_rhs_vs_eps
 
 
 def parse_args():
@@ -91,6 +92,10 @@ def parse_args():
     # Mode
     parser.add_argument('--eval_only', action='store_true',
                         help='Skip training and evaluate existing checkpoints')
+    
+    # Plotting
+    parser.add_argument('--no_make_eps_curves', dest='make_eps_curves', action='store_false', default=True,
+                        help='Disable ε-curves plot generation (default: enabled)')
     
     return parser.parse_args()
 
@@ -476,6 +481,20 @@ def main():
         if fhat_data_list:
             fhat_path = base_dir / 'plots' / f'fhat_curves_{args.schedule}_{timestamp}.png'
             plot_fhat_curves(fhat_data_list, labels, args.schedule, fhat_path)
+        
+        # ε-curves plot
+        if args.make_eps_curves:
+            eps_curves_path = base_dir / 'plots' / f'eps_curves_{args.schedule}_{timestamp}.png'
+            try:
+                plot_lhs_rhs_vs_eps(
+                    str(csv_path),
+                    str(eps_curves_path),
+                    schedule=args.schedule,
+                    ylog=True,
+                    annotate_epochs=True
+                )
+            except Exception as e:
+                print(f"Warning: Failed to generate ε-curves plot: {e}")
         
         print("\n" + "=" * 80)
         print("Summary")

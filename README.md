@@ -55,8 +55,10 @@ fm-kl-2/
 │   ├── run_all_cross_eval.sh   # Cross-schedule evaluations
 │   └── run_all_cross_eval.ps1  # PowerShell version
 │
-├── Plot Regeneration
-│   └── regenerate_plots.py     # Regenerate plots from saved data
+├── Plotting Utilities
+│   ├── plot_eps_curves.py      # Generate ε-curves plots (LHS/RHS vs ε)
+│   ├── regenerate_plots.py     # Regenerate Part 1 plots from saved data
+│   └── regenerate_plots_from_csv.py  # Regenerate Part 2 plots from CSV files
 │
 └── data/
     ├── models/                  # Saved trained models (.pth)
@@ -440,21 +442,49 @@ kl_comparison_{schedule}_mse_{TARGET}_TIMESTAMP.json
 
 To regenerate plots with different styling:
 ```bash
+# Part 1 plots (from JSON data)
 python regenerate_plots.py
+
+# Part 2 plots (from CSV files - works for both learned and synthetic)
+python regenerate_plots_from_csv.py path/to/csv.csv --schedule a1
 ```
+
+### ε-Curves Plotting
+
+The `plot_eps_curves.py` utility generates plots showing how LHS (KL divergence) and RHS (ε√S) components vary with ε (RMS flow-matching loss). This is useful for visualizing bound behavior across different checkpoints (learned) or perturbation strengths (synthetic).
+
+**Usage:**
+```bash
+# For learned data
+from plot_eps_curves import plot_lhs_rhs_vs_eps
+plot_lhs_rhs_vs_eps('data/part-2-learn/a1/results/bound_a1_TIMESTAMP.csv', 
+                     'output.png', schedule='a1', ylog=True, annotate=True)
+
+# For synthetic data
+plot_lhs_rhs_vs_eps('data/part-2/results/bound_a1_constant_TIMESTAMP.csv',
+                     'output.png', schedule='a1', ylog=True, annotate=True)
+```
+
+The plots automatically:
+- Detect CSV format (learned vs synthetic)
+- Handle zero epsilon values for log scale
+- Use dark green for LHS and dark red for RHS
+- Apply log scales to both axes
+- Annotate points with epochs (learned) or delta labels (synthetic)
 
 ### Part 2 (Synthetic) Outputs
 Saved to `data/part-2/{results,plots}/`:
 - `bound_*.csv` / `bound_*.json`: Bound verification results
 - `bound_scatter_*.png`: LHS vs RHS scatter plot
 - `bound_bars_*.png`: Grouped bar chart comparing LHS and RHS
+- `eps_curves_synthetic_*.png`: LHS and RHS vs ε curves (log-log plot)
 - `fhat_curves_*.png`: Score-gap integrand f̂(t) curves (optional)
 
 ### Part 2 (Learning) Outputs
 Saved to `data/part-2-learn/{schedule}/`:
 - **Checkpoints**: `checkpoints/ckpt__sched=*__epoch=*__valmse=*_TIMESTAMP.pt`
 - **Results**: `results/bound_*_TIMESTAMP.{csv,json}` (one row per checkpoint)
-- **Plots**: `plots/bound_scatter_*_TIMESTAMP.png`, `plots/fhat_curves_*_TIMESTAMP.png`
+- **Plots**: `plots/bound_scatter_*_TIMESTAMP.png`, `plots/eps_curves_*_TIMESTAMP.png`, `plots/fhat_curves_*_TIMESTAMP.png`
 - **Logs**: `logs/training_*.log` (if enabled)
 
 Checkpoint aliases: `best.pt`, `final.pt`, `best.json`, `final.json`

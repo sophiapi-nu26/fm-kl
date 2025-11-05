@@ -2,6 +2,8 @@
 instructions/
 old-junk/
 descriptions/
+data/part-2-learn/
+data/part-2/
 
 # Python
 __pycache__/
