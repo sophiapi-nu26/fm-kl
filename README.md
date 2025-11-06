@@ -47,6 +47,21 @@ fm-kl-2/
 │   ├── experiment_learn_pt2.py     # Part 2 Learning orchestrator
 │   └── test_learn_pt2.py           # Part 2 Learning unit tests
 │
+├── Part 2: Synthetic Bound Verification
+│   ├── synthetic_velocity.py        # Synthetic velocity fields v(x,t)
+│   ├── eval_pt2.py                  # Part 2 evaluation functions
+│   ├── experiment_pt2.py            # Part 2 orchestrator
+│   ├── test_pt2.py                  # Part 2 unit tests
+│   ├── run_all_pt2_experiments.py   # Automated Part 2 experiments
+│   └── run_all_pt2_experiments.ps1  # PowerShell wrapper
+│
+├── Part 2 (Learning): Learned Bound Verification
+│   ├── model_learn_pt2.py          # Velocity MLP (copy)
+│   ├── train_learn_pt2.py          # Training with checkpointing
+│   ├── eval_learn_pt2.py           # Learned evaluation functions
+│   ├── experiment_learn_pt2.py     # Part 2 Learning orchestrator
+│   └── test_learn_pt2.py           # Part 2 Learning unit tests
+│
 ├── Automated Experiments
 │   ├── run_all_experiments.py  # Train and evaluate all schedules
 │   └── run_all_cross_eval.sh   # Cross-schedule evaluations
