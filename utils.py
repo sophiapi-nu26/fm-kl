@@ -75,8 +75,10 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
     
     # Left subplot: raw curves
     plt.subplot(1, 2, 1)
-    plt.plot(t_grid, kl_curve, label='LHS: KL(p_t|q_t)', linewidth=4, alpha=0.9)
-    plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=4, alpha=0.9, linestyle='--')
+    # plt.plot(t_grid, kl_curve, label='LHS: KL(p_t||q_t)', linewidth=4, alpha=0.9, color='darkgrey')
+    plt.plot(t_grid, kl_curve, label='KL Divergence', linewidth=4, alpha=0.9, color='darkgrey')
+    # plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
+    plt.plot(t_grid, rhs_curve, label='Lemma 3.1 Identity', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
     plt.xlabel('Time t', fontsize=24)
     plt.ylabel('KL Divergence', fontsize=24)
     plt.title('Raw Curves', fontsize=20, fontweight='bold')
@@ -86,8 +88,10 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
     
     # Right subplot: smoothed curves
     plt.subplot(1, 2, 2)
-    plt.plot(t_grid, kl_smooth, label='LHS (smoothed)', linewidth=4, alpha=0.9)
-    plt.plot(t_grid, rhs_smooth, label='RHS (smoothed)', linewidth=4, alpha=0.9, linestyle='--')
+    # plt.plot(t_grid, kl_smooth, label='LHS (smoothed)', linewidth=4, alpha=0.9, color='darkgrey')
+    plt.plot(t_grid, kl_smooth, label='KL Divergence (smoothed)', linewidth=4, alpha=0.9, color='darkgrey')
+    # plt.plot(t_grid, rhs_smooth, label='RHS (smoothed)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
+    plt.plot(t_grid, rhs_smooth, label='Lemma 3.1 Identity (smoothed)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
     plt.xlabel('Time t', fontsize=24)
     plt.ylabel('KL Divergence', fontsize=24)
     plt.title('Smoothed Curves', fontsize=20, fontweight='bold')
@@ -114,8 +118,11 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
         
         # Raw plot
         plt.figure(figsize=(8, 6))
-        plt.plot(t_grid, kl_curve, label='LHS: KL(p_t|q_t)', linewidth=4, alpha=0.9)
-        plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=4, alpha=0.9, linestyle='--')
+        # plt.plot(t_grid, kl_curve, label='LHS: KL(p_t||q_t)', linewidth=4, alpha=0.9, color='darkgrey')
+        plt.plot(t_grid, kl_curve, label='KL Divergence', linewidth=4, alpha=0.9, color='darkgrey')
+        # plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
+        plt.plot(t_grid, rhs_curve, label='Lemma 3.1 Identity', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
+        
         plt.xlabel('Time t', fontsize=24)
         plt.ylabel('KL Divergence', fontsize=24)
         plt.title(f'Raw KL Identity Verification - Schedule {schedule.upper()}', fontsize=21, fontweight='bold')
@@ -129,8 +136,10 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
         
         # Smoothed plot
         plt.figure(figsize=(8, 6))
-        plt.plot(t_grid, kl_smooth, label='LHS (smoothed)', linewidth=4, alpha=0.9)
-        plt.plot(t_grid, rhs_smooth, label='RHS (smoothed)', linewidth=4, alpha=0.9, linestyle='--')
+        # plt.plot(t_grid, kl_smooth, label='LHS (smoothed)', linewidth=4, alpha=0.9, color='darkgrey')
+        plt.plot(t_grid, kl_smooth, label='KL Divergence (smoothed)', linewidth=4, alpha=0.9, color='darkgrey')
+        # plt.plot(t_grid, rhs_smooth, label='RHS (smoothed)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
+        plt.plot(t_grid, rhs_smooth, label='Lemma 3.1 Identity (smoothed)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
         plt.xlabel('Time t', fontsize=24)
         plt.ylabel('KL Divergence', fontsize=24)
         plt.title(f'Smoothed KL Identity Verification - Schedule {schedule.upper()}', fontsize=21, fontweight='bold')
