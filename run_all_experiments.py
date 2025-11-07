@@ -19,7 +19,7 @@ target_mses = [0.01, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8]
 # Common parameters
 num_samples = 2000
 num_times = 101
-num_seeds = 3
+num_seeds = 5
 batch_size = 2
 num_batches_per_epoch = 2
 

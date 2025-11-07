@@ -25,7 +25,8 @@ default_params = {
     'N_S': 2048,
     'rtol': 1e-6,
     'atol': 1e-8,
-    'seed': 42
+    'seed': 42,
+    'num_seeds': 1,
 }
 
 
@@ -44,6 +45,7 @@ def run_experiment(schedule, delta_type, betas):
         '--N_S', str(default_params['N_S']),
         '--rtol', str(default_params['rtol']),
         '--atol', str(default_params['atol']),
+        '--num_seeds', str(default_params['num_seeds']),
     ]
     
     # Add delta_beta arguments (all values after single flag, as argparse expects with nargs='+')

@@ -23,6 +23,8 @@ def regenerate_from_data(plot_data_path, plot_data_dir, output_dir):
     t_grid = np.array(data['t_grid'])
     kl_curve = np.array(data['kl_curve'])
     rhs_cumulative = np.array(data['rhs_cumulative'])
+    kl_std = np.array(data['kl_curve_std']) if 'kl_curve_std' in data else None
+    rhs_std = np.array(data['rhs_cumulative_std']) if 'rhs_cumulative_std' in data else None
     schedule = data['schedule']
     
     # Generate plot filename from data filename, preserving directory structure
@@ -38,7 +40,15 @@ def regenerate_from_data(plot_data_path, plot_data_dir, output_dir):
     plot_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Regenerate plot
-    plot_comparison(t_grid, kl_curve, rhs_cumulative, schedule, plot_path)
+    plot_comparison(
+        t_grid,
+        kl_curve,
+        rhs_cumulative,
+        schedule,
+        plot_path,
+        kl_std=kl_std,
+        rhs_std=rhs_std,
+    )
     
     return plot_path
 

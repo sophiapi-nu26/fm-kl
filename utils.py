@@ -64,8 +64,16 @@ def load_checkpoint(model, path, device):
     return checkpoint.get('metadata', {})
 
 
-def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
-    """Plot LHS (KL) vs RHS (integrated) comparison."""
+def plot_comparison(
+    t_grid,
+    kl_curve,
+    rhs_curve,
+    schedule,
+    save_path=None,
+    kl_std=None,
+    rhs_std=None,
+):
+    """Plot LHS (KL) vs RHS (integrated) comparison with optional variance shading."""
     # Compute smoothed curves once
     kl_smooth = smooth_curve(kl_curve, window_size=5)
     rhs_smooth = smooth_curve(rhs_curve, window_size=5)
@@ -75,9 +83,20 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
     
     # Left subplot: raw curves
     plt.subplot(1, 2, 1)
-    # plt.plot(t_grid, kl_curve, label='LHS: KL(p_t||q_t)', linewidth=4, alpha=0.9, color='darkgrey')
+    if kl_std is not None and np.any(kl_std > 1e-12):
+        kl_lower = np.clip(kl_curve - kl_std, a_min=0.0, a_max=None)
+        kl_upper = kl_curve + kl_std
+        plt.fill_between(
+            t_grid,
+            kl_lower,
+            kl_upper,
+            color='darkgrey',
+            alpha=0.2,
+            label='KL ±1σ',
+        )
+    if rhs_std is not None and np.any(rhs_std > 1e-12):
+        pass  # No shaded variance for RHS per requirement
     plt.plot(t_grid, kl_curve, label='KL Divergence', linewidth=4, alpha=0.9, color='darkgrey')
-    # plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
     plt.plot(t_grid, rhs_curve, label='Lemma 3.1 Identity', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
     plt.xlabel('Time t', fontsize=24)
     plt.ylabel('KL Divergence', fontsize=24)
@@ -118,14 +137,25 @@ def plot_comparison(t_grid, kl_curve, rhs_curve, schedule, save_path=None):
         
         # Raw plot
         plt.figure(figsize=(8, 6))
-        # plt.plot(t_grid, kl_curve, label='LHS: KL(p_t||q_t)', linewidth=4, alpha=0.9, color='darkgrey')
+        if kl_std is not None and np.any(kl_std > 1e-12):
+            kl_lower = np.clip(kl_curve - kl_std, a_min=0.0, a_max=None)
+            kl_upper = kl_curve + kl_std
+            plt.fill_between(
+                t_grid,
+                kl_lower,
+                kl_upper,
+                color='darkgrey',
+                alpha=0.2,
+                label='KL ±1σ',
+            )
+        if rhs_std is not None and np.any(rhs_std > 1e-12):
+            pass  # No shaded variance for RHS per requirement
         plt.plot(t_grid, kl_curve, label='KL Divergence', linewidth=4, alpha=0.9, color='darkgrey')
-        # plt.plot(t_grid, rhs_curve, label='RHS: ∫(u-v)ᵀ(s_p-s_q)', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
         plt.plot(t_grid, rhs_curve, label='Lemma 3.1 Identity', linewidth=4, alpha=0.9, linestyle='--', color='darkred')
         
         plt.xlabel('Time t', fontsize=24)
         plt.ylabel('KL Divergence', fontsize=24)
-        plt.title(f'Raw KL Identity Verification - Schedule {schedule.upper()}', fontsize=21, fontweight='bold')
+        # plt.title(f'KL Identity Verification (Learned) - Schedule {schedule.upper()}', fontsize=21, fontweight='bold')
         plt.tick_params(axis='both', which='major', labelsize=20)
         plt.legend(fontsize=16)
         plt.grid(True, alpha=0.3)
@@ -199,7 +229,18 @@ def compute_relative_error(rhs, kl):
     }
 
 
-def save_results(t_grid, kl_curve, rhs_integrand, rhs_cumulative, schedule, metadata, target_mse=None):
+def save_results(
+    t_grid,
+    kl_curve,
+    rhs_integrand,
+    rhs_cumulative,
+    schedule,
+    metadata,
+    target_mse=None,
+    kl_curve_std=None,
+    rhs_integrand_std=None,
+    rhs_cumulative_std=None,
+):
     """Save experimental results to files."""
     ensure_dirs()
     
@@ -219,6 +260,12 @@ def save_results(t_grid, kl_curve, rhs_integrand, rhs_cumulative, schedule, meta
     np.save(results_dir / f'kl_curve_{schedule}{suffix}.npy', kl_curve)
     np.save(results_dir / f'rhs_integrand_{schedule}{suffix}.npy', rhs_integrand)
     np.save(results_dir / f'rhs_cumulative_{schedule}{suffix}.npy', rhs_cumulative)
+    if kl_curve_std is not None:
+        np.save(results_dir / f'kl_curve_std_{schedule}{suffix}.npy', kl_curve_std)
+    if rhs_integrand_std is not None:
+        np.save(results_dir / f'rhs_integrand_std_{schedule}{suffix}.npy', rhs_integrand_std)
+    if rhs_cumulative_std is not None:
+        np.save(results_dir / f'rhs_cumulative_std_{schedule}{suffix}.npy', rhs_cumulative_std)
     
     # Save metadata
     metadata_path = results_dir / f'metadata_{schedule}{suffix}.json'
@@ -229,7 +276,15 @@ def save_results(t_grid, kl_curve, rhs_integrand, rhs_cumulative, schedule, meta
     
     # Plot comparison
     plot_path = Path('data/plots') / f'kl_comparison_{schedule}{suffix}.png'
-    plot_comparison(t_grid, kl_curve, rhs_cumulative, schedule, plot_path)
+    plot_comparison(
+        t_grid,
+        kl_curve,
+        rhs_cumulative,
+        schedule,
+        plot_path,
+        kl_std=kl_curve_std,
+        rhs_std=rhs_cumulative_std,
+    )
     
     # Save plot data (for regeneration)
     plot_data_dir = Path('data/plot-data')
@@ -240,6 +295,10 @@ def save_results(t_grid, kl_curve, rhs_integrand, rhs_cumulative, schedule, meta
         'schedule': schedule,
         'metadata': metadata
     }
+    if kl_curve_std is not None:
+        plot_data['kl_curve_std'] = kl_curve_std.tolist()
+    if rhs_cumulative_std is not None:
+        plot_data['rhs_cumulative_std'] = rhs_cumulative_std.tolist()
     plot_data_path = plot_data_dir / f'kl_comparison_{schedule}{suffix}.json'
     with open(plot_data_path, 'w') as f:
         json.dump(plot_data, f, indent=2)

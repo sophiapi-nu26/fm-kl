@@ -4,7 +4,8 @@ Main experiment script for Part-2 (Learning) bound verification.
 Trains a velocity MLP and validates the bound: KL(p_1|q^θ_1) ≤ ε_θ√S_θ
 
 Usage:
-    python experiment_learn_pt2.py --schedule a2 --epochs 200 --batch_size 128
+    python experiment_learn_pt2.py --schedule a1 --epochs 400 --device cpu --eval_checkpoints "all" --eval_only
+    python experiment_learn_pt2.py --schedule a2 --epochs 400 --device cpu
     python experiment_learn_pt2.py --schedule a1 --eval_checkpoints "final,best,50,100" --eval_only
 """
 
@@ -74,7 +75,9 @@ def parse_args():
                         help='Chunk size for batched evaluation')
     parser.add_argument('--tight_eval', action='store_true',
                         help='Use tighter tolerances for evaluation (rtol=3e-7, atol=3e-9)')
-    
+    parser.add_argument('--eval_num_seeds', type=int, default=1,
+                        help='Number of random seeds to average over during evaluation')
+
     # Seeds
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for training')
@@ -174,8 +177,18 @@ def plot_fhat_curves(fhat_data_list, labels, schedule, save_path):
     
     plt.figure(figsize=(10, 6))
     
-    for (t_grid, f_vals), label in zip(fhat_data_list, labels):
+    for data, label in zip(fhat_data_list, labels):
+        if len(data) == 3:
+            t_grid, f_vals, f_std = data
+        else:
+            t_grid, f_vals = data
+            f_std = None
+
         plt.plot(t_grid, f_vals, label=f"Epoch {label}", linewidth=1.5, alpha=0.7)
+        if f_std is not None and np.any(f_std > 1e-12):
+            f_lower = np.clip(f_vals - f_std, a_min=0.0, a_max=None)
+            f_upper = f_vals + f_std
+            plt.fill_between(t_grid, f_lower, f_upper, alpha=0.18)
     
     plt.xlabel('Time t', fontsize=12)
     plt.ylabel('f̂(t) = E|s_p - s_q^θ|²', fontsize=12)
@@ -356,77 +369,148 @@ def main():
         # Set eval seed
         set_seed(args.eval_seed)
         
-        # Compute ε_θ
-        print("  Computing ε_θ...")
-        epsilon_hat = compute_epsilon_learn(
-            v_theta=model,
-            schedule=schedule_enum,
-            val_times=args.eval_val_times,
-            val_samples_per_time=args.eval_val_samples_per_time,
-            device=device,
-            dtype=torch.float64
-        )
-        print(f"    ε_θ = {epsilon_hat:.6e}")
-        
-        # Compute S_θ
-        print("  Computing S_θ...")
-        S_hat, (t_grid, f_vals) = compute_score_gap_integral_learn(
-            v_theta=model,
-            schedule=schedule_enum,
-            K_S=args.eval_K_S,
-            N_S=args.eval_N_S,
-            rtol=args.eval_rtol,
-            atol=args.eval_atol,
-            eval_seed=args.eval_seed,
-            device=device,
-            dtype=torch.float64,
-            chunk_size=args.eval_chunk_size
-        )
-        print(f"    S_θ = {S_hat:.6e}")
-        
-        # Compute KL at t=1
-        print("  Computing KL(p₁|q₁^θ)...")
-        KL_hat = compute_kl_at_t1_learn(
-            v_theta=model,
-            schedule=schedule_enum,
-            N_kl=args.eval_N_kl,
-            rtol=args.eval_rtol,
-            atol=args.eval_atol,
-            eval_seed=args.eval_seed,
-            device=device,
-            dtype=torch.float64,
-            chunk_size=args.eval_chunk_size
-        )
-        print(f"    KL(p₁|q₁^θ) = {KL_hat:.6e}")
-        
-        # Compute RHS
-        RHS = epsilon_hat * math.sqrt(S_hat)
-        print(f"    RHS = ε_θ√S_θ = {RHS:.6e}")
-        
-        # Compute ratio
-        if RHS < 1e-10:
-            bound_satisfied = KL_hat < 1e-6
-            ratio = float('inf') if not bound_satisfied else 0.0
+        epsilon_vals = []
+        S_vals = []
+        KL_vals = []
+        RHS_vals = []
+        ratio_vals = []
+        bound_flags = []
+        f_vals_seeds = []
+        t_grid = None
+
+        for seed_offset in range(args.eval_num_seeds):
+            current_seed = args.eval_seed + seed_offset
+            set_seed(current_seed)
+
+            print(f"  Seed {seed_offset + 1}/{args.eval_num_seeds}: computing ε_θ...")
+            epsilon_hat = compute_epsilon_learn(
+                v_theta=model,
+                schedule=schedule_enum,
+                val_times=args.eval_val_times,
+                val_samples_per_time=args.eval_val_samples_per_time,
+                device=device,
+                dtype=torch.float64
+            )
+
+            print("    Computing S_θ...")
+            S_hat, (t_grid_seed, f_vals_seed) = compute_score_gap_integral_learn(
+                v_theta=model,
+                schedule=schedule_enum,
+                K_S=args.eval_K_S,
+                N_S=args.eval_N_S,
+                rtol=args.eval_rtol,
+                atol=args.eval_atol,
+                eval_seed=current_seed,
+                device=device,
+                dtype=torch.float64,
+                chunk_size=args.eval_chunk_size
+            )
+
+            print("    Computing KL(p₁|q₁^θ)...")
+            KL_hat = compute_kl_at_t1_learn(
+                v_theta=model,
+                schedule=schedule_enum,
+                N_kl=args.eval_N_kl,
+                rtol=args.eval_rtol,
+                atol=args.eval_atol,
+                eval_seed=current_seed,
+                device=device,
+                dtype=torch.float64,
+                chunk_size=args.eval_chunk_size
+            )
+
+            RHS = epsilon_hat * math.sqrt(S_hat)
+
+            if RHS < 1e-10:
+                bound_satisfied_seed = KL_hat < 1e-6
+                ratio_seed = float('inf') if not bound_satisfied_seed else 0.0
+            else:
+                ratio_seed = KL_hat / RHS
+                bound_satisfied_seed = KL_hat <= RHS
+
+            epsilon_vals.append(epsilon_hat)
+            S_vals.append(S_hat)
+            KL_vals.append(KL_hat)
+            RHS_vals.append(RHS)
+            ratio_vals.append(ratio_seed)
+            bound_flags.append(bound_satisfied_seed)
+
+            if t_grid is None:
+                t_grid = np.array(t_grid_seed, dtype=np.float64)
+            f_vals_seeds.append(np.array(f_vals_seed, dtype=np.float64))
+
+        epsilon_vals = np.array(epsilon_vals, dtype=np.float64)
+        S_vals = np.array(S_vals, dtype=np.float64)
+        KL_vals = np.array(KL_vals, dtype=np.float64)
+        RHS_vals = np.array(RHS_vals, dtype=np.float64)
+        ratio_vals = np.array(ratio_vals, dtype=np.float64)
+
+        epsilon_mean = float(np.mean(epsilon_vals))
+        S_mean = float(np.mean(S_vals))
+        KL_mean = float(np.mean(KL_vals))
+        RHS_mean = float(np.mean(RHS_vals))
+
+        epsilon_std = float(np.std(epsilon_vals, ddof=0)) if args.eval_num_seeds > 1 else 0.0
+        S_std = float(np.std(S_vals, ddof=0)) if args.eval_num_seeds > 1 else 0.0
+        KL_std = float(np.std(KL_vals, ddof=0)) if args.eval_num_seeds > 1 else 0.0
+        RHS_std = float(np.std(RHS_vals, ddof=0)) if args.eval_num_seeds > 1 else 0.0
+
+        finite_ratio_mask = np.isfinite(ratio_vals)
+        if finite_ratio_mask.any():
+            ratio_mean = float(np.mean(ratio_vals[finite_ratio_mask]))
+            ratio_std = float(np.std(ratio_vals[finite_ratio_mask], ddof=0)) if (
+                args.eval_num_seeds > 1 and finite_ratio_mask.sum() > 1
+            ) else 0.0
         else:
-            ratio = KL_hat / RHS
-            bound_satisfied = KL_hat <= RHS
-        
-        status = "✓" if bound_satisfied else "✗"
-        print(f"    Ratio (LHS/RHS) = {ratio:.6f}")
-        print(f"    Bound satisfied: {status}")
-        
+            ratio_mean = float('inf')
+            ratio_std = 'nan'
+
+        bound_satisfied = bool(np.all(bound_flags))
+
+        f_vals_array = np.stack(f_vals_seeds)
+        f_vals_mean = np.mean(f_vals_array, axis=0)
+        f_vals_std = np.std(f_vals_array, axis=0, ddof=0) if args.eval_num_seeds > 1 else None
+
+        def format_mean_std(mean_val, std_val):
+            if args.eval_num_seeds > 1:
+                return f"{mean_val:.6e} ± {std_val:.2e}"
+            return f"{mean_val:.6e}"
+
+        print(f"    ε_θ = {format_mean_std(epsilon_mean, epsilon_std)}")
+        print(f"    S_θ = {format_mean_std(S_mean, S_std)}")
+        print(f"    KL(p₁|q₁^θ) = {format_mean_std(KL_mean, KL_std)}")
+        print(f"    RHS = ε_θ√S_θ = {format_mean_std(RHS_mean, RHS_std)}")
+
+        if ratio_mean == float('inf'):
+            print("    Ratio (LHS/RHS) = inf (RHS≈0)")
+        else:
+            ratio_disp = (
+                f"{ratio_mean:.6f} ± {ratio_std:.3f}" if (
+                    args.eval_num_seeds > 1 and isinstance(ratio_std, float) and np.isfinite(ratio_std)
+                ) else f"{ratio_mean:.6f}"
+            )
+            print(f"    Ratio (LHS/RHS) = {ratio_disp}")
+        print(f"    Bound satisfied across seeds: {'YES ✓' if bound_satisfied else 'NO ✗'}")
+
         # Store results
         result = {
             'epoch': epoch,
             'ckpt_path': str(ckpt_path),
             'val_mse_train': val_mse_train,
-            'eps_eval': float(epsilon_hat),
-            'S_eval': float(S_hat),
-            'KL_eval': float(KL_hat),
-            'kl_hat': float(KL_hat),  # Alias for plotting
-            'rhs': float(RHS),  # Alias for plotting
-            'RHS': float(RHS),
-            'ratio': float(ratio) if ratio != float('inf') else 'inf',
+            'eps_eval': epsilon_mean,
+            'eps_eval_std': epsilon_std,
+            'S_eval': S_mean,
+            'S_eval_std': S_std,
+            'KL_eval': KL_mean,
+            'KL_eval_std': KL_std,
+            'kl_hat': KL_mean,
+            'kl_hat_std': KL_std,
+            'rhs': RHS_mean,
+            'rhs_std': RHS_std,
+            'RHS': RHS_mean,
+            'RHS_std': RHS_std,
+            'ratio': ratio_mean if np.isfinite(ratio_mean) else float('inf'),
+            'ratio_std': ratio_std,
             'bound_satisfied': bool(bound_satisfied),
             'eval_params': {
                 'eval_val_times': args.eval_val_times,
@@ -439,11 +523,15 @@ def main():
                 'eval_chunk_size': args.eval_chunk_size
             },
             'train_params': metadata.get('train_params', {}) if metadata else {},
-            'seeds': {'training': args.seed, 'eval': args.eval_seed}
+            'seeds': {
+                'training': args.seed,
+                'eval_start': args.eval_seed,
+                'eval_num_seeds': args.eval_num_seeds,
+            }
         }
         
         results.append(result)
-        fhat_data_list.append((t_grid, f_vals))
+        fhat_data_list.append((t_grid, f_vals_mean, f_vals_std))
         labels.append(epoch)
     
     # Save results
@@ -453,21 +541,39 @@ def main():
         # Save JSON
         json_path = base_dir / 'results' / f'bound_{args.schedule}_{timestamp}.json'
         with open(json_path, 'w') as f:
+            json_results = []
+            for r in results:
+                r_copy = r.copy()
+                if r_copy['ratio'] == float('inf'):
+                    r_copy['ratio'] = 'inf'
+                ratio_std_val = r_copy.get('ratio_std')
+                if isinstance(ratio_std_val, float) and not math.isfinite(ratio_std_val):
+                    r_copy['ratio_std'] = 'nan'
+                json_results.append(r_copy)
+            args_dict = vars(args).copy()
             json.dump({
-                'args': vars(args),
-                'results': results
+                'args': args_dict,
+                'results': json_results
             }, f, indent=2)
         print(f"\nSaved results to {json_path}")
         
         # Save CSV
         csv_path = base_dir / 'results' / f'bound_{args.schedule}_{timestamp}.csv'
         with open(csv_path, 'w', encoding='utf-8') as f:
-            f.write('epoch,ckpt_path,val_mse_train,eps_eval,S_eval,KL_eval,RHS,ratio,bound_satisfied\n')
+            f.write('epoch,ckpt_path,val_mse_train,eps_eval,eps_eval_std,S_eval,S_eval_std,'
+                    'KL_eval,KL_eval_std,RHS,RHS_std,ratio,ratio_std,bound_satisfied,num_eval_seeds\n')
             for r in results:
-                ratio_str = str(r['ratio']) if r['ratio'] != 'inf' else 'inf'
-                f.write(f"{r['epoch']},{r['ckpt_path']},{r['val_mse_train'] or 'N/A'},"
-                       f"{r['eps_eval']},{r['S_eval']},{r['KL_eval']},{r['RHS']},"
-                       f"{ratio_str},{r['bound_satisfied']}\n")
+                ratio_val = r['ratio']
+                ratio_str = 'inf' if ratio_val == float('inf') else f"{ratio_val}"
+                ratio_std = r.get('ratio_std', '')
+                if isinstance(ratio_std, float) and not math.isfinite(ratio_std):
+                    ratio_std = 'nan'
+                f.write(
+                    f"{r['epoch']},{r['ckpt_path']},{r['val_mse_train'] or 'N/A'},"
+                    f"{r['eps_eval']},{r.get('eps_eval_std', 0.0)},{r['S_eval']},{r.get('S_eval_std', 0.0)},"
+                    f"{r['KL_eval']},{r.get('KL_eval_std', 0.0)},{r['RHS']},{r.get('RHS_std', 0.0)},"
+                    f"{ratio_str},{ratio_std},{r['bound_satisfied']},{args.eval_num_seeds}\n"
+                )
         print(f"Saved CSV to {csv_path}")
         
         # Generate plots
@@ -491,7 +597,8 @@ def main():
                     str(eps_curves_path),
                     schedule=args.schedule,
                     ylog=True,
-                    annotate_epochs=True
+                    # annotate_epochs=True,
+                    # title=f"KL Error Bound Verification (Learned) - Schedule {args.schedule.upper()}"
                 )
             except Exception as e:
                 print(f"Warning: Failed to generate ε-curves plot: {e}")
@@ -499,13 +606,25 @@ def main():
         print("\n" + "=" * 80)
         print("Summary")
         print("=" * 80)
-        print(f"{'Epoch':<8} {'LHS':<15} {'RHS':<15} {'Ratio':<10} {'Bound'}")
+        print(f"{'Epoch':<8} {'LHS':<25} {'RHS':<25} {'Ratio':<18} {'Bound'}")
         print("-" * 80)
         for r in results:
             status = "✓" if r['bound_satisfied'] else "✗"
-            ratio_str = "inf" if r['ratio'] == 'inf' else f"{r['ratio']:.3f}"
-            print(f"{r['epoch']:<8} {r['KL_eval']:<15.6e} {r['RHS']:<15.6e} "
-                  f"{ratio_str:<10} {status}")
+            lhs_display = f"{r['KL_eval']:.6e}"
+            if args.eval_num_seeds > 1 and r.get('KL_eval_std', 0.0):
+                lhs_display += f" ± {r['KL_eval_std']:.2e}"
+            rhs_display = f"{r['RHS']:.6e}"
+            if args.eval_num_seeds > 1 and r.get('RHS_std', 0.0):
+                rhs_display += f" ± {r['RHS_std']:.2e}"
+            ratio_val = r['ratio']
+            if ratio_val == float('inf'):
+                ratio_display = 'inf'
+            else:
+                ratio_display = f"{ratio_val:.3f}"
+                if args.eval_num_seeds > 1 and isinstance(r.get('ratio_std'), float) and math.isfinite(r['ratio_std']):
+                    ratio_display += f" ± {r['ratio_std']:.3f}"
+            print(f"{r['epoch']:<8} {lhs_display:<25} {rhs_display:<25} "
+                  f"{ratio_display:<18} {status}")
     
     print("\n" + "=" * 80)
     print("Experiment complete!")

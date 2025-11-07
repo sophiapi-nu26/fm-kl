@@ -49,7 +49,9 @@ def parse_args():
     # Random seed
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed')
-    
+    parser.add_argument('--num_seeds', type=int, default=1,
+                        help='Number of random seeds to average over')
+
     # Device
     parser.add_argument('--device', type=str, default='cpu',
                         help='Device (cpu or cuda)')
@@ -88,7 +90,8 @@ def ensure_part2_dirs(outdir='data/part-2'):
     Path(f'{outdir}/results').mkdir(parents=True, exist_ok=True)
 
 
-def plot_bound_verification(lhs_list, rhs_list, delta_labels, schedule, save_path):
+def plot_bound_verification(lhs_list, rhs_list, delta_labels, schedule, save_path,
+                             lhs_std=None, rhs_std=None):
     """
     Plot LHS vs RHS scatter with y=x reference line.
     
@@ -101,17 +104,18 @@ def plot_bound_verification(lhs_list, rhs_list, delta_labels, schedule, save_pat
     """
     plt.figure(figsize=(10, 8))
     
-    # Scatter plot
-    plt.scatter(rhs_list, lhs_list, s=100, alpha=0.7, label='Experiments', zorder=3)
-    
+    lhs_array = np.array(lhs_list, dtype=np.float64)
+    rhs_array = np.array(rhs_list, dtype=np.float64)
+    plt.scatter(rhs_array, lhs_array, s=100, alpha=0.7, label='Experiments', zorder=3)
+
     # Add labels
     for i, label in enumerate(delta_labels):
-        plt.annotate(label, (rhs_list[i], lhs_list[i]), 
+        plt.annotate(label, (rhs_array[i], lhs_array[i]), 
                     xytext=(5, 5), textcoords='offset points', fontsize=9)
     
     # Reference line y=x
-    max_rhs = max(rhs_list) if rhs_list else 0
-    max_lhs = max(lhs_list) if lhs_list else 0
+    max_rhs = np.max(rhs_array) if len(rhs_array) else 0
+    max_lhs = np.max(lhs_array) if len(lhs_array) else 0
     max_val = max(max_rhs, max_lhs, 1e-6) * 1.1  # Ensure at least 1e-6
     plt.plot([0, max_val], [0, max_val], 'r--', linewidth=2, label='y=x (bound)', zorder=1)
     
@@ -129,7 +133,8 @@ def plot_bound_verification(lhs_list, rhs_list, delta_labels, schedule, save_pat
     plt.close()
 
 
-def plot_bar_chart(lhs_list, rhs_list, delta_labels, schedule, save_path):
+def plot_bar_chart(lhs_list, rhs_list, delta_labels, schedule, save_path,
+                   lhs_std=None, rhs_std=None):
     """
     Plot grouped bar chart of LHS and RHS per δ.
     
@@ -182,8 +187,12 @@ def plot_fhat_curves(fhat_data, delta_labels, schedule, save_path):
     """
     plt.figure(figsize=(12, 6))
     
-    for i, ((t_grid, f_vals), label) in enumerate(zip(fhat_data, delta_labels)):
-        plt.plot(t_grid, f_vals, label=f'δ: {label}', linewidth=2, alpha=0.8)
+    for i, ((t_grid, f_mean, f_std), label) in enumerate(zip(fhat_data, delta_labels)):
+        plt.plot(t_grid, f_mean, label=f'δ: {label}', linewidth=2, alpha=0.8)
+        if f_std is not None:
+            f_lower = np.clip(f_mean - f_std, a_min=0.0, a_max=None)
+            f_upper = f_mean + f_std
+            plt.fill_between(t_grid, f_lower, f_upper, alpha=0.2)
     
     plt.xlabel('Time t', fontsize=12)
     plt.ylabel('E[|s_p - s_q|²]', fontsize=12)
@@ -230,7 +239,9 @@ def main():
     rhs_list = []
     delta_labels = []
     fhat_data = []
-    
+    lhs_std_list = []
+    rhs_std_list = []
+
     # Loop over δ values
     for beta in tqdm(args.delta_beta, desc="Processing δ values"):
         print(f"\n{'='*60}")
@@ -247,91 +258,150 @@ def main():
         else:
             raise ValueError(f"Unknown delta_type: {args.delta_type}")
         
-        # Construct synthetic velocity
-        velocity = SyntheticVelocity(a_fn, delta_fn, dim=2)
-        print(f"Velocity constructed: {delta_label}")
-        
-        # Compute ε (RMS flow-matching loss)
-        print("Computing ε...")
-        epsilon_hat = compute_epsilon_pt2(
-            a_fn, delta_fn, schedule_enum,
-            K_eps=args.K_eps, N_eps=args.N_eps, dim=2,
-            device=device, dtype=torch.float64
-        )
-        print(f"  ε̂ = {epsilon_hat:.6e}")
-        
-        # Compute KL at t=1
-        print("Computing KL(p_1|q_1)...")
-        KL_hat = compute_kl_at_t1_pt2(
-            velocity, schedule_enum,
-            N_kl=args.N_kl,
-            rtol=args.rtol, atol=args.atol,
-            device=device, dtype=torch.float64
-        )
-        print(f"  KL(p_1|q_1) = {KL_hat:.6e}")
-        
-        # Compute S (score-gap integral)
-        print("Computing S (score-gap integral)...")
-        S_hat, (t_grid, f_vals) = compute_score_gap_integral_pt2(
-            velocity, schedule_enum,
-            K_S=args.K_S, N_S=args.N_S,
-            rtol=args.rtol, atol=args.atol,
-            device=device, dtype=torch.float64
-        )
-        print(f"  Ŝ = {S_hat:.6e}")
-        
-        # Compute RHS
-        RHS = epsilon_hat * math.sqrt(S_hat)
-        print(f"  RHS = ε̂√Ŝ = {RHS:.6e}")
-        
-        # Compute ratio (handle edge case when RHS ≈ 0)
-        if RHS < 1e-10:
-            # When δ=0, ε≈0 and S≈0, so RHS≈0
-            # Bound KL ≤ 0 means KL must be ≈ 0 (since KL ≥ 0 always)
-            # Check if KL is essentially zero within numerical precision
-            bound_satisfied = KL_hat < 1e-6  # KL should be essentially 0 when v=u
-            ratio = float('inf') if not bound_satisfied else 0.0
+        epsilon_vals = []
+        KL_vals = []
+        S_vals = []
+        RHS_vals = []
+        ratio_vals = []
+        bound_flags = []
+        f_vals_seeds = []
+        t_grid = None
+
+        for seed_idx in range(args.num_seeds):
+            seed_value = args.seed + seed_idx
+            set_seed(seed_value)
+
+            # Construct synthetic velocity
+            velocity = SyntheticVelocity(a_fn, delta_fn, dim=2)
+
+            # Compute ε (RMS flow-matching loss)
+            epsilon_hat_seed = compute_epsilon_pt2(
+                a_fn, delta_fn, schedule_enum,
+                K_eps=args.K_eps, N_eps=args.N_eps, dim=2,
+                device=device, dtype=torch.float64
+            )
+
+            # Compute KL at t=1
+            KL_hat_seed = compute_kl_at_t1_pt2(
+                velocity, schedule_enum,
+                N_kl=args.N_kl,
+                rtol=args.rtol, atol=args.atol,
+                device=device, dtype=torch.float64
+            )
+
+            # Compute S (score-gap integral)
+            S_hat_seed, (t_grid_seed, f_vals_seed) = compute_score_gap_integral_pt2(
+                velocity, schedule_enum,
+                K_S=args.K_S, N_S=args.N_S,
+                rtol=args.rtol, atol=args.atol,
+                device=device, dtype=torch.float64
+            )
+
+            t_grid = np.array(t_grid_seed) if t_grid is None else t_grid
+            f_vals_seeds.append(np.array(f_vals_seed, dtype=np.float64))
+
+            RHS_seed = epsilon_hat_seed * math.sqrt(S_hat_seed)
+
+            if RHS_seed < 1e-10:
+                bound_satisfied_seed = KL_hat_seed < 1e-6
+                ratio_seed = float('inf') if not bound_satisfied_seed else 0.0
+            else:
+                ratio_seed = KL_hat_seed / RHS_seed
+                bound_satisfied_seed = KL_hat_seed <= RHS_seed
+
+            epsilon_vals.append(epsilon_hat_seed)
+            KL_vals.append(KL_hat_seed)
+            S_vals.append(S_hat_seed)
+            RHS_vals.append(RHS_seed)
+            ratio_vals.append(ratio_seed)
+            bound_flags.append(bound_satisfied_seed)
+
+        epsilon_vals = np.array(epsilon_vals, dtype=np.float64)
+        KL_vals = np.array(KL_vals, dtype=np.float64)
+        S_vals = np.array(S_vals, dtype=np.float64)
+        RHS_vals = np.array(RHS_vals, dtype=np.float64)
+        ratio_vals = np.array(ratio_vals, dtype=np.float64)
+        f_vals_array = np.stack(f_vals_seeds)
+
+        epsilon_mean = float(np.mean(epsilon_vals))
+        KL_mean = float(np.mean(KL_vals))
+        S_mean = float(np.mean(S_vals))
+        RHS_mean = float(np.mean(RHS_vals))
+
+        epsilon_std = float(np.std(epsilon_vals, ddof=0)) if args.num_seeds > 1 else 0.0
+        KL_std = float(np.std(KL_vals, ddof=0)) if args.num_seeds > 1 else 0.0
+        S_std = float(np.std(S_vals, ddof=0)) if args.num_seeds > 1 else 0.0
+        RHS_std = float(np.std(RHS_vals, ddof=0)) if args.num_seeds > 1 else 0.0
+
+        finite_ratio = ratio_vals[np.isfinite(ratio_vals)]
+        if finite_ratio.size > 0:
+            ratio_mean = float(np.mean(finite_ratio))
+            ratio_std = float(np.std(finite_ratio, ddof=0)) if finite_ratio.size > 1 else 0.0
         else:
-            ratio = KL_hat / RHS
-            bound_satisfied = KL_hat <= RHS
-        
-        if ratio == float('inf'):
-            print(f"  Ratio (LHS/RHS) = inf (RHS≈0, KL={KL_hat:.2e})")
+            ratio_mean = float('inf')
+            ratio_std = float('nan')
+
+        if ratio_mean == float('inf') and np.all(np.isinf(ratio_vals)):
+            print(f"  Ratio (LHS/RHS) = inf (RHS≈0) for all seeds")
         else:
-            print(f"  Ratio (LHS/RHS) = {ratio:.6f}")
-        print(f"  Bound satisfied: {'YES ✓' if bound_satisfied else 'NO ✗'}")
-        
-        # Store results
+            print(f"  Ratio (LHS/RHS) = {ratio_mean:.6f}")
+
+        bound_satisfied = bool(np.all(bound_flags))
+        print(f"  Bound satisfied across seeds: {'YES ✓' if bound_satisfied else 'NO ✗'}")
+
+        f_vals_mean = np.mean(f_vals_array, axis=0)
+        f_vals_std = np.std(f_vals_array, axis=0, ddof=0) if args.num_seeds > 1 else None
+
+        print("  ε̂  = " + (f"{epsilon_mean:.6e} ± {epsilon_std:.2e}" if args.num_seeds > 1 else f"{epsilon_mean:.6e}"))
+        print("  KL = " + (f"{KL_mean:.6e} ± {KL_std:.2e}" if args.num_seeds > 1 else f"{KL_mean:.6e}"))
+        print("  Ŝ  = " + (f"{S_mean:.6e} ± {S_std:.2e}" if args.num_seeds > 1 else f"{S_mean:.6e}"))
+        print("  RHS = ε̂√Ŝ = " + (f"{RHS_mean:.6e} ± {RHS_std:.2e}" if args.num_seeds > 1 else f"{RHS_mean:.6e}"))
+
         result = {
             'schedule': args.schedule,
             'delta_type': args.delta_type,
             'beta': float(beta),
             'delta_label': delta_label,
-            'epsilon_hat': float(epsilon_hat),
-            'KL_hat': float(KL_hat),
-            'S_hat': float(S_hat),
-            'RHS': float(RHS),
-            'ratio': float(ratio),
-            'bound_satisfied': bool(bound_satisfied)
+            'epsilon_hat': float(epsilon_mean),
+            'epsilon_hat_std': float(epsilon_std),
+            'KL_hat': float(KL_mean),
+            'KL_hat_std': float(KL_std),
+            'S_hat': float(S_mean),
+            'S_hat_std': float(S_std),
+            'RHS': float(RHS_mean),
+            'RHS_std': float(RHS_std),
+            'ratio': float(ratio_mean) if np.isfinite(ratio_mean) else float('inf'),
+            'ratio_std': float(ratio_std) if np.isfinite(ratio_mean) else 'nan',
+            'bound_satisfied': bound_satisfied,
+            'num_seeds': args.num_seeds
         }
         results.append(result)
-        
-        lhs_list.append(KL_hat)
-        rhs_list.append(RHS)
+
+        lhs_list.append(KL_mean)
+        rhs_list.append(RHS_mean)
+        lhs_std_list.append(KL_std)
+        rhs_std_list.append(RHS_std)
         delta_labels.append(delta_label)
-        fhat_data.append((t_grid, f_vals))
-    
+        fhat_data.append((t_grid, f_vals_mean, f_vals_std))
+ 
     # Summary
     print(f"\n{'='*80}")
     print("Summary")
     print(f"{'='*80}")
-    print(f"{'δ':<30} {'LHS':<15} {'RHS':<15} {'Ratio':<10} {'Bound'}")
+    print(f"{'δ':<30} {'LHS':<22} {'RHS':<22} {'Ratio':<15} {'Bound'}")
     print("-" * 80)
-    for result in results:
+    for result, lhs_std, rhs_std in zip(results, lhs_std_list, rhs_std_list):
         status = "✓" if result['bound_satisfied'] else "✗"
+        lhs_display = f"{result['KL_hat']:.6e}"
+        rhs_display = f"{result['RHS']:.6e}"
+        if args.num_seeds > 1:
+            lhs_display += f" ± {lhs_std:.2e}"
+            rhs_display += f" ± {rhs_std:.2e}"
         ratio_str = "inf" if result['ratio'] == float('inf') else f"{result['ratio']:.3f}"
-        print(f"{result['delta_label']:<30} {result['KL_hat']:<15.6e} {result['RHS']:<15.6e} "
-              f"{ratio_str:<10} {status}")
+        if args.num_seeds > 1 and np.isfinite(result['ratio']) and isinstance(result['ratio_std'], float):
+            ratio_str += f" ± {result['ratio_std']:.3f}"
+        print(f"{result['delta_label']:<30} {lhs_display:<22} {rhs_display:<22} "
+              f"{ratio_str:<15} {status}")
     
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -345,9 +415,11 @@ def main():
             result_copy = result.copy()
             if result_copy['ratio'] == float('inf'):
                 result_copy['ratio'] = 'inf'
+            if isinstance(result_copy.get('ratio_std'), float) and not math.isfinite(result_copy['ratio_std']):
+                result_copy['ratio_std'] = 'nan'
             results_json.append(result_copy)
         json.dump({
-            'args': vars(args),
+            'args': {**vars(args), 'num_seeds': args.num_seeds},
             'results': results_json
         }, f, indent=2)
     print(f"\nSaved results to {json_path}")
@@ -355,13 +427,18 @@ def main():
     # Save CSV (use UTF-8 encoding to handle Greek delta character)
     csv_path = Path(args.outdir) / 'results' / f'bound_{args.schedule}_{args.delta_type}_{timestamp}.csv'
     with open(csv_path, 'w', encoding='utf-8') as f:
-        f.write('schedule,delta_type,beta,delta_label,epsilon_hat,KL_hat,S_hat,RHS,ratio,bound_satisfied\n')
+        f.write('schedule,delta_type,beta,delta_label,epsilon_hat,epsilon_hat_std,KL_hat,KL_hat_std,S_hat,S_hat_std,RHS,RHS_std,ratio,ratio_std,bound_satisfied,num_seeds\n')
         for result in results:
             ratio_val = result['ratio']
             ratio_str = 'inf' if ratio_val == float('inf') else str(ratio_val)
-            f.write(f"{result['schedule']},{result['delta_type']},{result['beta']},"
-                   f'"{result["delta_label"]}",{result["epsilon_hat"]},{result["KL_hat"]},'
-                   f'{result["S_hat"]},{result["RHS"]},{ratio_str},{result["bound_satisfied"]}\n')
+            ratio_std = result['ratio_std']
+            ratio_std_str = ratio_std if isinstance(ratio_std, str) else str(ratio_std)
+            f.write(
+                f"{result['schedule']},{result['delta_type']},{result['beta']},"
+                f'"{result["delta_label"]}",{result["epsilon_hat"]},{result["epsilon_hat_std"]},'
+                f"{result['KL_hat']},{result['KL_hat_std']},{result['S_hat']},{result['S_hat_std']},"
+                f"{result['RHS']},{result['RHS_std']},{ratio_str},{ratio_std_str},{result['bound_satisfied']},{result['num_seeds']}\n"
+            )
     print(f"Saved CSV to {csv_path}")
     
     # Generate plots
@@ -369,11 +446,15 @@ def main():
     
     # Scatter plot
     scatter_path = Path(args.outdir) / 'plots' / f'bound_scatter_{args.schedule}_{args.delta_type}_{timestamp}.png'
-    plot_bound_verification(lhs_list, rhs_list, delta_labels, args.schedule, scatter_path)
+    plot_bound_verification(lhs_list, rhs_list, delta_labels, args.schedule, scatter_path,
+                            lhs_std=lhs_std_list if args.num_seeds > 1 else None,
+                            rhs_std=rhs_std_list if args.num_seeds > 1 else None)
     
     # Bar chart
     bar_path = Path(args.outdir) / 'plots' / f'bound_bars_{args.schedule}_{args.delta_type}_{timestamp}.png'
-    plot_bar_chart(lhs_list, rhs_list, delta_labels, args.schedule, bar_path)
+    plot_bar_chart(lhs_list, rhs_list, delta_labels, args.schedule, bar_path,
+                   lhs_std=lhs_std_list if args.num_seeds > 1 else None,
+                   rhs_std=rhs_std_list if args.num_seeds > 1 else None)
     
     # f̂(t) curves
     fhat_path = Path(args.outdir) / 'plots' / f'fhat_curves_{args.schedule}_{args.delta_type}_{timestamp}.png'

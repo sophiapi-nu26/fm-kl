@@ -112,7 +112,7 @@ def integrate_trapezoidal(g_values, t_grid):
 
 def plot_comparison(t_grid, kl_values, rhs_values, save_path=None):
     """Plot LHS vs RHS comparison."""
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(8, 6))
     # plt.plot(t_grid, kl_values, label='LHS: KL(p_t||q_t)', linewidth=12, color='darkgrey')
     plt.plot(t_grid, kl_values, label='KL Divergence', linewidth=12, color='darkgrey')
     
@@ -121,7 +121,7 @@ def plot_comparison(t_grid, kl_values, rhs_values, save_path=None):
     
     plt.xlabel('Time t', fontsize=24)
     plt.ylabel('KL Divergence', fontsize=24)
-    plt.title('KL Identity Verification (Closed-Form)', fontsize=21, fontweight='bold')
+    # plt.title('KL Identity Verification (Closed-Form)', fontsize=21, fontweight='bold')
     plt.tick_params(axis='both', which='major', labelsize=20)
     plt.legend(fontsize=20)
     plt.grid(True, alpha=0.3)

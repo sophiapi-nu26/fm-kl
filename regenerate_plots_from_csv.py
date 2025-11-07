@@ -25,16 +25,27 @@ def plot_bound_verification_from_csv(df, schedule, save_path):
         return
     
     # Auto-detect format (learned vs synthetic)
+    lhs_std = None
+    rhs_std = None
+
     if 'KL_eval' in df.columns and 'eps_eval' in df.columns:
         # Learned format
         lhs_col = 'KL_eval'
         eps_col = 'eps_eval'
         label_col = 'epoch'
+        if 'KL_eval_std' in df.columns:
+            lhs_std = df['KL_eval_std'].values
+        if 'RHS_std' in df.columns:
+            rhs_std = df['RHS_std'].values
     elif 'KL_hat' in df.columns and 'epsilon_hat' in df.columns:
         # Synthetic format
         lhs_col = 'KL_hat'
         eps_col = 'epsilon_hat'
         label_col = 'delta_label'
+        if 'KL_hat_std' in df.columns:
+            lhs_std = df['KL_hat_std'].values
+        if 'RHS_std' in df.columns:
+            rhs_std = df['RHS_std'].values
     else:
         raise ValueError("Could not identify CSV format. Expected either learned (eps_eval, KL_eval) or synthetic (epsilon_hat, KL_hat) columns.")
     
@@ -79,6 +90,19 @@ def plot_bound_verification_from_csv(df, schedule, save_path):
             for rhs, lhs, label in zip(rhs_list, lhs_list, labels):
                 plt.annotate(str(label), (rhs, lhs), 
                             xytext=(5, 5), textcoords='offset points', fontsize=8)
+
+    if lhs_std is not None or rhs_std is not None:
+        plt.errorbar(
+            rhs_list,
+            lhs_list,
+            xerr=rhs_std if rhs_std is not None else None,
+            yerr=lhs_std if lhs_std is not None else None,
+            fmt='none',
+            ecolor='black',
+            alpha=0.4,
+            capsize=5,
+            zorder=2,
+        )
     
     # Reference line y=x
     max_rhs = rhs_list.max() if len(rhs_list) > 0 else 0
@@ -180,13 +204,25 @@ def regenerate_plots(csv_path, schedule=None, output_dir=None):
     # Generate ε-curves plot
     eps_curves_path = output_dir / f'eps_curves_{schedule}_{timestamp}.png'
     print(f"\nGenerating ε-curves plot...")
+    
+    # Determine if this is a learned or closed-form (synthetic) plot
+    # Check the CSV path or column names to determine the type
+    csv_path_str = str(csv_path)
+    is_learned = 'part-2-learn' in csv_path_str or ('eps_eval' in df.columns and 'KL_eval' in df.columns)
+    
+    if is_learned:
+        title = f"KL Error Bound Verification (Learned) - Schedule {schedule.upper()}"
+    else:
+        title = f"KL Error Bound Verification (Closed-Form) - Schedule {schedule.upper()}"
+    
     try:
         plot_lhs_rhs_vs_eps(
             str(csv_path),
             str(eps_curves_path),
             schedule=schedule,
             ylog=True,
-            annotate=False
+            annotate=False,
+            title=title
         )
         print(f"✓ Successfully generated both plots!")
         print(f"  Scatter plot: {scatter_path}")

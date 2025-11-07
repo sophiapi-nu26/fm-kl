@@ -71,20 +71,7 @@ fm-kl-2/
 │   ├── regenerate_plots.py     # Regenerate Part 1 plots from saved data
 │   └── regenerate_plots_from_csv.py  # Regenerate Part 2 plots from CSV files
 │
-└── data/
-    ├── models/                  # Saved trained models (.pth)
-    ├── results/                 # Raw results (.npy, .json)
-    ├── plots/                   # Generated plots (.png)
-    ├── plot-data/              # Plot data for regeneration (.json)
-    ├── part-2/                 # Part 2 (Synthetic) results
-    │   ├── results/            # Part 2 results
-    │   └── plots/              # Part 2 plots
-    └── part-2-learn/           # Part 2 (Learning) results
-        └── {schedule}/         # Per-schedule outputs
-            ├── checkpoints/    # Model checkpoints
-            ├── results/        # Evaluation results
-            ├── plots/          # Bound verification plots
-            └── logs/           # Training logs
+└── (output artifacts are written to a data directory)
 ```
 
 ## Installation
@@ -128,14 +115,14 @@ python experiment.py --schedule a1 --target_mse 0.05
 
 This will:
 - Train a neural network to match the true velocity
-- Save the model to `data/models/`
+- Write checkpoints, metrics, and plots into the configured output directory 
 - Evaluate the KL identity
 - Generate plots showing LHS vs RHS
 
 ### 3. Load a trained model and re-evaluate
 
 ```bash
-python experiment.py --schedule a1 --load_model data/models/vtheta_schedule_a1_mse_0-05_TIMESTAMP.pth
+python experiment.py --schedule a1 --load_model path/to/vtheta_schedule_a1_mse_0-05_TIMESTAMP.pth
 ```
 
 ### 4. Part 2: Synthetic Bound Verification
@@ -423,32 +410,12 @@ This tests all combinations of:
 
 ## Output Files
 
-### Models
-Saved to `data/models/`:
-```
-vtheta_schedule_{a1,a2,a3}_mse_{TARGET}_TIMESTAMP.pth
-```
+All experiments write their artifacts (checkpoints, numeric summaries, and figures) into a data directory. Typical files include:
 
-### Results
-Saved to `data/results/`:
-- `t_grid_*.npy`: Time grid
-- `kl_curve_*.npy`: KL divergence values (LHS)
-- `rhs_integrand_*.npy`: RHS integrand
-- `rhs_cumulative_*.npy`: Integrated RHS
-- `metadata_*.json`: Experiment parameters and errors
-
-### Plots
-Saved to `data/plots/`:
-- `kl_comparison_*.png`: LHS vs RHS comparison (raw + smoothed)
-- `training_curves_*.png`: Training/validation loss
-- `velocity_comparison_*.png`: True vs learned velocity fields
-- `nolearning_test_*.png`: Closed-form verification plots
-
-### Plot Data
-Saved to `data/plot-data/` (JSON format for regeneration):
-```
-kl_comparison_{schedule}_mse_{TARGET}_TIMESTAMP.json
-```
+- Model checkpoints (`*.pth`) containing network weights.
+- NumPy arrays (`t_grid_*.npy`, `kl_curve_*.npy`, `rhs_integrand_*.npy`, `rhs_cumulative_*.npy`) plus accompanying metadata JSON.
+- Figures such as `kl_comparison_*.png`, training curves, velocity comparisons, and Part 2 scatter/ε/f̂ plots.
+- Plot-data JSON files (`kl_comparison_{schedule}_mse_{TARGET}_TIMESTAMP.json`) that allow reproducible regeneration of figures.
 
 To regenerate plots with different styling:
 ```bash
@@ -456,7 +423,7 @@ To regenerate plots with different styling:
 python regenerate_plots.py
 
 # Part 2 plots (from CSV files - works for both learned and synthetic)
-python regenerate_plots_from_csv.py path/to/csv.csv --schedule a1
+python regenerate_plots_from_csv.py path/to/results.csv --schedule a1
 ```
 
 ### ε-Curves Plotting
@@ -467,12 +434,12 @@ The `plot_eps_curves.py` utility generates plots showing how LHS (KL divergence)
 ```bash
 # For learned data
 from plot_eps_curves import plot_lhs_rhs_vs_eps
-plot_lhs_rhs_vs_eps('data/part-2-learn/a1/results/bound_a1_TIMESTAMP.csv', 
-                     'output.png', schedule='a1', ylog=True, annotate=True)
+plot_lhs_rhs_vs_eps('path/to/learned_results.csv',
+                    'output.png', schedule='a1', ylog=True, annotate=True)
 
 # For synthetic data
-plot_lhs_rhs_vs_eps('data/part-2/results/bound_a1_constant_TIMESTAMP.csv',
-                     'output.png', schedule='a1', ylog=True, annotate=True)
+plot_lhs_rhs_vs_eps('path/to/synthetic_results.csv',
+                    'output.png', schedule='a1', ylog=True, annotate=True)
 ```
 
 The plots automatically:
@@ -482,22 +449,8 @@ The plots automatically:
 - Apply log scales to both axes
 - Annotate points with epochs (learned) or delta labels (synthetic)
 
-### Part 2 (Synthetic) Outputs
-Saved to `data/part-2/{results,plots}/`:
-- `bound_*.csv` / `bound_*.json`: Bound verification results
-- `bound_scatter_*.png`: LHS vs RHS scatter plot
-- `bound_bars_*.png`: Grouped bar chart comparing LHS and RHS
-- `eps_curves_synthetic_*.png`: LHS and RHS vs ε curves (log-log plot)
-- `fhat_curves_*.png`: Score-gap integrand f̂(t) curves (optional)
-
-### Part 2 (Learning) Outputs
-Saved to `data/part-2-learn/{schedule}/`:
-- **Checkpoints**: `checkpoints/ckpt__sched=*__epoch=*__valmse=*_TIMESTAMP.pt`
-- **Results**: `results/bound_*_TIMESTAMP.{csv,json}` (one row per checkpoint)
-- **Plots**: `plots/bound_scatter_*_TIMESTAMP.png`, `plots/eps_curves_*_TIMESTAMP.png`, `plots/fhat_curves_*_TIMESTAMP.png`
-- **Logs**: `logs/training_*.log` (if enabled)
-
-Checkpoint aliases: `best.pt`, `final.pt`, `best.json`, `final.json`
+### Part 2 Outputs
+Synthetic experiments produce CSV/JSON summaries alongside scatter, bar, ε-curve, and f̂(t) figures for each perturbation setting. Learned experiments create schedule-specific bundles containing checkpoints (`ckpt__sched=*__epoch=*__valmse=*_TIMESTAMP.pt`), per-checkpoint metrics (`bound_*_TIMESTAMP.{csv,json}`), and plots (`bound_scatter_*_TIMESTAMP.png`, `eps_curves_*_TIMESTAMP.png`, `fhat_curves_*_TIMESTAMP.png`). These assets reside inside the data directory so you can regenerate or archive them without affecting the repository.
 
 ## Key Implementation Details
 

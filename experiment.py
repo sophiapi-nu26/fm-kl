@@ -169,6 +169,7 @@ def main():
     # Storage for results (accumulate over seeds)
     kl_curve_all = []
     rhs_integrand_all = []
+    rhs_cumulative_all = []
     
     # Run multiple seeds for variance reduction
     for seed_idx in range(args.num_seeds):
@@ -198,19 +199,32 @@ def main():
         
         kl_curve_all.append(kl_curve)
         rhs_integrand_all.append(rhs_integrand)
+        rhs_cumulative_all.append(integrate_rhs(rhs_integrand, t_grid))
     
     # Average over seeds
     if args.num_seeds > 1:
+        kl_curve_all = np.stack(kl_curve_all)
+        rhs_integrand_all = np.stack(rhs_integrand_all)
+        rhs_cumulative_all = np.stack(rhs_cumulative_all)
+
         kl_curve = np.mean(kl_curve_all, axis=0)
         rhs_integrand = np.mean(rhs_integrand_all, axis=0)
+        rhs_cumulative = np.mean(rhs_cumulative_all, axis=0)
+
+        kl_curve_std = np.std(kl_curve_all, axis=0, ddof=0)
+        rhs_integrand_std = np.std(rhs_integrand_all, axis=0, ddof=0)
+        rhs_cumulative_std = np.std(rhs_cumulative_all, axis=0, ddof=0)
+
         print(f"\nAveraged over {args.num_seeds} seeds")
     else:
         kl_curve = kl_curve_all[0]
         rhs_integrand = rhs_integrand_all[0]
-    
-    # Integrate RHS over time (trapezoidal rule)
-    rhs_cumulative = integrate_rhs(rhs_integrand, t_grid)
-    
+        rhs_cumulative = rhs_cumulative_all[0]
+
+        kl_curve_std = None
+        rhs_integrand_std = None
+        rhs_cumulative_std = None
+
     # Compute relative error
     error_stats = compute_relative_error(rhs_cumulative, kl_curve)
     
@@ -239,12 +253,23 @@ def main():
         'median_rel_error': error_stats['median'],
         'max_rel_error': error_stats['max'],
         'mean_rel_error': error_stats['mean'],
-        'accepted': accepted
+        'accepted': accepted,
+        'kl_std_max': float(np.max(kl_curve_std)) if kl_curve_std is not None else 0.0,
+        'rhs_integrand_std_max': float(np.max(rhs_integrand_std)) if rhs_integrand_std is not None else 0.0,
+        'rhs_cumulative_std_max': float(np.max(rhs_cumulative_std)) if rhs_cumulative_std is not None else 0.0,
     }
     
     save_results(
-        t_grid, kl_curve, rhs_integrand, rhs_cumulative,
-        args.schedule, metadata, target_mse=args.target_mse
+        t_grid,
+        kl_curve,
+        rhs_integrand,
+        rhs_cumulative,
+        args.schedule,
+        metadata,
+        target_mse=args.target_mse,
+        kl_curve_std=kl_curve_std,
+        rhs_integrand_std=rhs_integrand_std,
+        rhs_cumulative_std=rhs_cumulative_std,
     )
     
     print(f"\n{'='*60}")
