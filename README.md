@@ -1,7 +1,8 @@
-# Flow Matching KL Divergence Identity Verification
+# Flow Matching KL Divergence Bounds – Experiments
 
-This project implements and verifies a mathematical identity relating the Kullback-Leibler divergence between two time-evolving distributions to an integral of local velocity field misalignments. The identity is:
+This repository hosts the implementation of the numerical studies reported in “On Flow Matching KL Divergence,” Su et al., 2025. The code reproduces the empirical evidence supporting the paper’s deterministic KL error bounds and statistical convergence guarantees for flow matching.
 
+For reference, the paper builds on the KL evolution identity:
 ```
 KL(p_t|q_t) = ∫₀ᵗ E_x~p_t[(u(x,s) - v_θ(x,s))ᵀ(∇log p_s(x) - ∇log q_s(x))] ds
 ```
@@ -47,29 +48,14 @@ fm-kl-2/
 │   ├── experiment_learn_pt2.py     # Part 2 Learning orchestrator
 │   └── test_learn_pt2.py           # Part 2 Learning unit tests
 │
-├── Part 2: Synthetic Bound Verification
-│   ├── synthetic_velocity.py        # Synthetic velocity fields v(x,t)
-│   ├── eval_pt2.py                  # Part 2 evaluation functions
-│   ├── experiment_pt2.py            # Part 2 orchestrator
-│   ├── test_pt2.py                  # Part 2 unit tests
-│   ├── run_all_pt2_experiments.py   # Automated Part 2 experiments
-│   └── run_all_pt2_experiments.ps1  # PowerShell wrapper
-│
-├── Part 2 (Learning): Learned Bound Verification
-│   ├── model_learn_pt2.py          # Velocity MLP (copy)
-│   ├── train_learn_pt2.py          # Training with checkpointing
-│   ├── eval_learn_pt2.py           # Learned evaluation functions
-│   ├── experiment_learn_pt2.py     # Part 2 Learning orchestrator
-│   └── test_learn_pt2.py           # Part 2 Learning unit tests
-│
 ├── Automated Experiments
 │   ├── run_all_experiments.py  # Train and evaluate all schedules
 │   └── run_all_cross_eval.sh   # Cross-schedule evaluations
 │
 ├── Plotting Utilities
-│   ├── plot_eps_curves.py      # Generate ε-curves plots (LHS/RHS vs ε)
-│   ├── regenerate_plots.py     # Regenerate Part 1 plots from saved data
-│   └── regenerate_plots_from_csv.py  # Regenerate Part 2 plots from CSV files
+│   ├── plot_eps_curves.py      # Generate ε-curves used in Section 5
+│   ├── regenerate_plots.py     # Rebuild KL identity plots from saved JSON data
+│   └── regenerate_plots_from_csv.py  # Rebuild Part 2 plots from cleaned CSV files
 │
 └── (output artifacts are written to a data directory)
 ```
@@ -113,7 +99,7 @@ Train a model to learn velocity field `v_θ`:
 python experiment.py --schedule a1 --target_mse 0.05
 ```
 
-This will:
+This will reproduce the Section 5.2 checkpoints:
 - Train a neural network to match the true velocity
 - Write checkpoints, metrics, and plots into the configured output directory 
 - Evaluate the KL identity
